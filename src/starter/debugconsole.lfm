@@ -1,31 +1,35 @@
 object frmDebugConsole: TfrmDebugConsole
   Left = 439
-  Height = 384
+  Height = 468
   Top = 284
-  Width = 681
+  Width = 786
   BorderStyle = bsSizeToolWin
   Caption = 'frmDebugConsole'
-  ClientHeight = 384
-  ClientWidth = 681
+  ClientHeight = 468
+  ClientWidth = 786
+  KeyPreview = True
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnUTF8KeyPress = FormUTF8KeyPress
   LCLVersion = '2.0.10.0'
   object pnlConsoleView: TPanel
     Left = 0
     Height = 42
     Top = 0
-    Width = 681
+    Width = 786
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
   end
-  object memoDebug: TMemo
+  object Console: TPaintBox
     Left = 0
-    Height = 342
+    Height = 426
     Top = 42
-    Width = 681
+    Width = 786
     Align = alClient
-    ReadOnly = True
-    ScrollBars = ssAutoBoth
-    TabOrder = 1
+    Font.Height = -13
+    Font.Name = 'Monospace'
+    ParentFont = False
+    OnPaint = ConsolePaint
   end
 end
