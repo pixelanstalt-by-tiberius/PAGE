@@ -1,0 +1,63 @@
+object frmPageInit: TfrmPageInit
+  Left = 700
+  Height = 268
+  Top = 308
+  Width = 420
+  BorderStyle = bsToolWindow
+  Caption = 'PaGE initialization options'
+  ClientHeight = 268
+  ClientWidth = 420
+  Position = poMainFormCenter
+  LCLVersion = '2.0.10.0'
+  object pcPageInit: TPageControl
+    Left = 4
+    Height = 223
+    Top = 4
+    Width = 412
+    ActivePage = tsRendering
+    Align = alClient
+    BorderSpacing.Around = 4
+    TabIndex = 0
+    TabOrder = 0
+    object tsRendering: TTabSheet
+      Caption = 'Rendering'
+    end
+    object tsDisplay: TTabSheet
+      Caption = 'Display'
+    end
+  end
+  object pnlDialogButtons: TPanel
+    Left = 4
+    Height = 33
+    Top = 231
+    Width = 412
+    Align = alBottom
+    BorderSpacing.Around = 4
+    BevelOuter = bvNone
+    ClientHeight = 33
+    ClientWidth = 412
+    TabOrder = 1
+    object btnOk: TButton
+      Left = 333
+      Height = 25
+      Top = 4
+      Width = 75
+      Align = alRight
+      BorderSpacing.Around = 4
+      Caption = 'Accept'
+      Default = True
+      ModalResult = 1
+      TabOrder = 0
+    end
+    object Button1: TButton
+      Left = 254
+      Height = 25
+      Top = 4
+      Width = 75
+      Align = alRight
+      BorderSpacing.Around = 4
+      Caption = 'Cancel'
+      TabOrder = 1
+    end
+  end
+end

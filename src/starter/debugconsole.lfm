@@ -1,0 +1,31 @@
+object frmDebugConsole: TfrmDebugConsole
+  Left = 439
+  Height = 384
+  Top = 284
+  Width = 681
+  BorderStyle = bsSizeToolWin
+  Caption = 'frmDebugConsole'
+  ClientHeight = 384
+  ClientWidth = 681
+  OnCreate = FormCreate
+  LCLVersion = '2.0.10.0'
+  object pnlConsoleView: TPanel
+    Left = 0
+    Height = 42
+    Top = 0
+    Width = 681
+    Align = alTop
+    BevelOuter = bvNone
+    TabOrder = 0
+  end
+  object memoDebug: TMemo
+    Left = 0
+    Height = 342
+    Top = 42
+    Width = 681
+    Align = alClient
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 1
+  end
+end

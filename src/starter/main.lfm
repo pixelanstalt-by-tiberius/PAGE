@@ -1,0 +1,352 @@
+object frmMain: TfrmMain
+  Left = 438
+  Height = 296
+  Top = 261
+  Width = 596
+  Caption = 'PaGE LoaD'
+  ClientHeight = 296
+  ClientWidth = 596
+  OnCreate = FormCreate
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '2.0.10.0'
+  object gbGameLoopControl: TGroupBox
+    Left = 392
+    Height = 232
+    Top = 4
+    Width = 200
+    Caption = 'Loop Control'
+    ClientHeight = 215
+    ClientWidth = 198
+    TabOrder = 0
+    object btnGameLoopRun: TButton
+      Left = 4
+      Height = 25
+      Top = 4
+      Width = 190
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Play/Start Loop'
+      Enabled = False
+      TabOrder = 0
+    end
+    object btnGameLoopPause: TButton
+      Left = 4
+      Height = 25
+      Top = 33
+      Width = 190
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Pause'
+      Enabled = False
+      TabOrder = 1
+    end
+    object btnGameLoopNextFrame: TButton
+      Left = 4
+      Height = 25
+      Top = 62
+      Width = 190
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Next Frame'
+      Enabled = False
+      TabOrder = 2
+    end
+    object btnGameLoopX2: TButton
+      Left = 4
+      Height = 25
+      Top = 91
+      Width = 190
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Fast forward x2'
+      Enabled = False
+      TabOrder = 3
+    end
+    object gbGameLoopSpeed: TGroupBox
+      Left = 4
+      Height = 84
+      Top = 120
+      Width = 190
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Speed'
+      ClientHeight = 67
+      ClientWidth = 188
+      TabOrder = 4
+      object cbOverrideFPS: TCheckBox
+        Left = 4
+        Height = 23
+        Top = 4
+        Width = 180
+        Align = alTop
+        BorderSpacing.Around = 4
+        Caption = 'Override Game Loop FPS'
+        Enabled = False
+        TabOrder = 0
+      end
+      object pnlOverrideFPS: TPanel
+        Left = 0
+        Height = 32
+        Top = 31
+        Width = 188
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 32
+        ClientWidth = 188
+        ParentColor = False
+        TabOrder = 1
+        object lblsOverrideFPS: TLabel
+          Left = 26
+          Height = 20
+          Top = 8
+          Width = 25
+          Align = alLeft
+          BorderSpacing.Left = 22
+          BorderSpacing.Top = 4
+          BorderSpacing.Around = 4
+          Caption = 'FPS:'
+          Enabled = False
+          ParentColor = False
+        end
+        object seOverrideFPS: TSpinEdit
+          Left = 55
+          Height = 24
+          Top = 4
+          Width = 71
+          Align = alLeft
+          BorderSpacing.Around = 4
+          Enabled = False
+          MaxValue = 600
+          MinValue = 1
+          TabOrder = 0
+          Value = 60
+        end
+      end
+    end
+  end
+  object gbSettingsVRAM: TGroupBox
+    Left = 8
+    Height = 79
+    Top = 60
+    Width = 380
+    Caption = 'Video RAM - VRAM'
+    ClientHeight = 62
+    ClientWidth = 378
+    TabOrder = 2
+    object rbVRAMUseRomSetting: TRadioButton
+      Left = 4
+      Height = 23
+      Top = 4
+      Width = 370
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Use ROM Setting'
+      Checked = True
+      OnChange = rbVRAMUseCustomSizeChange
+      TabOrder = 1
+      TabStop = True
+    end
+    object rbVRAMUseCustomSize: TRadioButton
+      Left = 4
+      Height = 27
+      Top = 31
+      Width = 101
+      Align = alLeft
+      BorderSpacing.Around = 4
+      Caption = 'Custom Size:'
+      OnChange = rbVRAMUseCustomSizeChange
+      TabOrder = 0
+    end
+    object seVRAMCustomSize: TSpinEdit
+      Left = 109
+      Height = 27
+      Top = 31
+      Width = 79
+      Align = alLeft
+      BorderSpacing.Around = 4
+      Enabled = False
+      MaxValue = 10240
+      MinValue = 1
+      TabOrder = 2
+      Value = 612
+    end
+    object lblsKiB: TLabel
+      Left = 192
+      Height = 14
+      Top = 36
+      Width = 20
+      Caption = 'KiB'
+      Enabled = False
+      ParentColor = False
+    end
+  end
+  object gbPAGE: TGroupBox
+    Left = 8
+    Height = 48
+    Top = 4
+    Width = 380
+    Caption = 'Pixelanstalt Game Engine'
+    ClientHeight = 31
+    ClientWidth = 378
+    TabOrder = 1
+    object lblsPageBindStatus: TLabel
+      Left = 4
+      Height = 15
+      Top = 8
+      Width = 45
+      Caption = 'Status:'
+      Font.Height = -13
+      Font.Name = 'Sans'
+      ParentColor = False
+      ParentFont = False
+    end
+    object lbldPageBindStatus: TLabel
+      Left = 56
+      Height = 14
+      Top = 8
+      Width = 57
+      Caption = 'Unbound'
+      Font.Color = clRed
+      ParentColor = False
+      ParentFont = False
+    end
+    object btnPageBindUnbind: TButton
+      Left = 124
+      Height = 24
+      Top = 4
+      Width = 75
+      Caption = 'Bind'
+      OnClick = btnPageBindUnbindClick
+      TabOrder = 0
+    end
+    object lbldPageInitializedStatus: TLabel
+      Left = 212
+      Height = 14
+      Top = 8
+      Width = 74
+      Caption = 'Uninitialized'
+      Font.Color = clRed
+      ParentColor = False
+      ParentFont = False
+    end
+    object btnPageInitializeFinalize: TButton
+      Left = 296
+      Height = 24
+      Top = 4
+      Width = 75
+      Caption = 'Initialize ...'
+      Enabled = False
+      OnClick = btnPageInitializeFinalizeClick
+      TabOrder = 1
+    end
+  end
+  object gbSettingsWRAM: TGroupBox
+    Left = 8
+    Height = 79
+    Top = 144
+    Width = 380
+    Caption = 'Working RAM - WRAM'
+    ClientHeight = 62
+    ClientWidth = 378
+    TabOrder = 3
+    object rbWRAMUseRomSetting: TRadioButton
+      Left = 4
+      Height = 23
+      Top = 4
+      Width = 370
+      Align = alTop
+      BorderSpacing.Around = 4
+      Caption = 'Use ROM Setting'
+      Checked = True
+      OnChange = rbWRAMUseCustomSizeChange
+      TabOrder = 1
+      TabStop = True
+    end
+    object rbWRAMUseCustomSize: TRadioButton
+      Left = 4
+      Height = 27
+      Top = 31
+      Width = 101
+      Align = alLeft
+      BorderSpacing.Around = 4
+      Caption = 'Custom Size:'
+      OnChange = rbWRAMUseCustomSizeChange
+      TabOrder = 0
+    end
+    object seWRAMCustomSize: TSpinEdit
+      Left = 109
+      Height = 27
+      Top = 31
+      Width = 79
+      Align = alLeft
+      BorderSpacing.Around = 4
+      Enabled = False
+      MaxValue = 10240
+      MinValue = 1
+      TabOrder = 2
+      Value = 2048
+    end
+    object lblsKiB1: TLabel
+      Left = 192
+      Height = 14
+      Top = 36
+      Width = 20
+      Caption = 'KiB'
+      Enabled = False
+      ParentColor = False
+    end
+  end
+  object gbROM: TGroupBox
+    Left = 7
+    Height = 48
+    Top = 244
+    Width = 585
+    Caption = 'ROM'
+    ClientHeight = 31
+    ClientWidth = 583
+    TabOrder = 4
+    object pnlRomFile: TPanel
+      Left = 4
+      Height = 22
+      Top = 4
+      Width = 575
+      Align = alTop
+      BorderSpacing.Around = 4
+      BevelOuter = bvNone
+      ClientHeight = 22
+      ClientWidth = 575
+      TabOrder = 0
+      object lbldRomStatus: TLabel
+        Left = 0
+        Height = 22
+        Top = 0
+        Width = 96
+        Align = alLeft
+        Caption = 'No ROM loaded'
+        Layout = tlCenter
+        ParentColor = False
+      end
+      object btnSelectROM: TButton
+        Left = 500
+        Height = 22
+        Top = 0
+        Width = 75
+        Align = alRight
+        Caption = 'Select ...'
+        OnClick = btnSelectROMClick
+        TabOrder = 0
+      end
+    end
+  end
+  object OpenPageDialog: TOpenDialog
+    Title = 'Pixelanstalt Game Engine Shared Library öffnen'
+    Left = 244
+    Top = 192
+  end
+  object OpenROMDialog: TOpenDialog
+    Filter = 'PaGE Bytecode ROM (*.pbr)|*.pbr'
+    Left = 348
+    Top = 192
+  end
+end
