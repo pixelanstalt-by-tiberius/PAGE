@@ -6,7 +6,9 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls;
+  ExtCtrls, PAGEAPI;
+
+//{$include ../PAGEAPI.inc}
 
 type
 
@@ -14,15 +16,32 @@ type
 
   TfrmPageInit = class(TForm)
     btnOk: TButton;
-    Button1: TButton;
+    btnCancel: TButton;
+    cbIsAcceleratedRenderer: TCheckBox;
+    cbIsVSyncPresent: TCheckBox;
+    cbRenderer: TComboBox;
+    cbIsSoftwareRenderer: TCheckBox;
+    gbRendererCapabilities: TGroupBox;
+    lblRenderer: TLabel;
     pcPageInit: TPageControl;
     pnlDialogButtons: TPanel;
     tsDisplay: TTabSheet;
     tsRendering: TTabSheet;
+    procedure cbIsSoftwareRendererChange(Sender: TObject);
+    procedure cbIsSoftwareRendererEditingDone(Sender: TObject);
+    procedure cbRendererChange(Sender: TObject);
   private
+    FRendererInfos: TPAGE_RendererInfos;
+
+    function GetRendererInfo(Index: Integer): TPAGE_RendererInfo;
+    procedure SetRendererInfo(Index: Integer; AValue: TPAGE_RendererInfo);
 
   public
+    property RendererInfos[Index: Integer]: TPAGE_RendererInfo read
+      GetRendererInfo write SetRendererInfo;
 
+    function AddRendererInfo: Integer;
+    procedure DoPopulateRendererInfoCombobox;
   end;
 
 var
@@ -31,6 +50,63 @@ var
 implementation
 
 {$R *.lfm}
+
+{ TfrmPageInit }
+
+procedure TfrmPageInit.cbRendererChange(Sender: TObject);
+begin
+  cbIsSoftwareRenderer.Checked :=
+    FRendererInfos[cbRenderer.ItemIndex].isSoftware;
+
+  cbIsAcceleratedRenderer.Checked :=
+    FRendererInfos[cbRenderer.ItemIndex].isAccelerated;
+
+  cbIsVSyncPresent.Checked :=
+    FRendererInfos[cbRenderer.ItemIndex].isVSyncPresent;
+end;
+
+procedure TfrmPageInit.cbIsSoftwareRendererChange(Sender: TObject);
+begin
+
+end;
+
+procedure TfrmPageInit.cbIsSoftwareRendererEditingDone(Sender: TObject);
+begin
+
+end;
+
+function TfrmPageInit.GetRendererInfo(Index: Integer): TPAGE_RendererInfo;
+begin
+  if (Index > High(FRendererInfos)) or (Index < Low(FRendererInfos)) then
+    Exception.CreateFmt('RendererInfos index out of bounds (%d)', [Index]);
+
+  Result := FRendererInfos[Index];
+end;
+
+procedure TfrmPageInit.SetRendererInfo(Index: Integer;
+  AValue: TPAGE_RendererInfo);
+begin
+  if (Index > High(FRendererInfos)) or (Index < Low(FRendererInfos)) then
+    Exception.CreateFmt('RendererInfos index out of bounds (%d)', [Index]);
+
+  FRendererInfos[Index] := AValue;
+end;
+
+function TfrmPageInit.AddRendererInfo: Integer;
+begin
+  SetLength(FRendererInfos, Length(FRendererInfos)+1);
+  Result := High(FRendererInfos);
+end;
+
+procedure TfrmPageInit.DoPopulateRendererInfoCombobox;
+var
+  intLoop: Integer;
+begin
+  cbRenderer.Clear;
+  for intLoop := 0 to High(FRendererInfos) do
+    cbRenderer.Items.Add(FRendererInfos[intLoop].Name);
+  cbRenderer.ItemIndex := 0;
+end;
 
 end.
 

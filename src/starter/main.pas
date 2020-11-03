@@ -6,9 +6,10 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole;
+  Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
+  PAGEAPI;
 
-{$include ../PAGEAPI.inc}
+//{$include ../PAGEAPI.inc}
 {$include ../PAGEconst.inc}
 
 type
@@ -16,6 +17,7 @@ type
     PAGEInitialize: TPAGE_Initialize;
     PAGEFinalize: TPAGE_Finalize;
     PAGEBindToApp: TPAGE_BindToApp;
+    PAGEGetRendererInfos: TPAGE_GetRendererInfos;
   end;
 
   { TfrmMain }
@@ -67,10 +69,13 @@ type
     FDesiredWRAMSize: Integer;
     FDesiredVRAMSize: Integer;
 
-    function DoBindPage(PageFileName: String = ''): Boolean;
+    FptrWRAM, FptrVRAM, FptrROM: Pointer;
+
+    function DoBindPageMethods(PageFileName: String = ''): Boolean;
 
     procedure DoSetGUIPageBoundUnbound(isPageBound: Boolean);
     procedure DoSetGUIPageInitializeFinalize(isPageInitialized: Boolean);
+    procedure DoNilPageMethodHandles;
     {function DoUnbindPage: Boolean;
     function DoInitializePage: Boolean;
     function DoFinalizePage: Boolean; }
@@ -98,6 +103,10 @@ begin
   FDesiredVRAMSize := 612*KB;
   FDesiredWRAMSize := 2*MB;
 
+  FptrWRAM := nil;
+  FptrVRAM := nil;
+  FptrROM := nil;
+
   OpenPageDialog.Filter := Format('Shared Library (*.%0:s)|*.%0:s',
     [SharedSuffix]);
   hPage := NilHandle;
@@ -114,19 +123,37 @@ procedure TfrmMain.btnPageBindUnbindClick(Sender: TObject);
 var
   boolLibOpenDialogExecuted: Boolean = True;
 begin
+  { TODO: Refactor }
+  if FptrWRAM = nil then
+  begin
+    // Hard-Initialize - do be done dynamically
+    FptrWRAM := AllocMem(2*MB);
+    FptrVRAM := AllocMem(612*KB);
+  end;
+
+
   if not FboolIsPageBound then
   begin
-    FboolIsPageBound := DoBindPage(PageLibName);
+    FboolIsPageBound := DoBindPageMethods(PageLibName);
     if not FboolIsPageBound then
     begin
       repeat
         boolLibOpenDialogExecuted := OpenPageDialog.Execute;
-        FboolIsPageBound := DoBindPage(OpenPageDialog.FileName);
+        FboolIsPageBound := DoBindPageMethods(OpenPageDialog.FileName);
       until (not boolLibOpenDialogExecuted) or (FboolIsPageBound);
     end;
 
-    if (FboolIsPageBound) and (FboolIsPageInitialized) then
-      FPAGEMethods.PAGEBindToApp(nil, nil, nil, 0, 0, 0);
+    { DONE: Overthink if memory allocation should be placed in PAGE or in
+            initialize }
+    if (FboolIsPageBound) then //and (FboolIsPageInitialized) then
+    begin
+      PageLibName := OpenPageDialog.FileName;
+      if not FPAGEMethods.PAGEBindToApp(nil, nil, nil, 0, 0, 0) then
+      begin
+        gDebugDataHandler.ErrorInfoText(Self, 'Failed to bind PAGE. ' +
+          'PAGEBindToApp returned FALSE');
+      end;
+    end;
   end
   else
   begin
@@ -134,17 +161,34 @@ begin
     begin
       hPage := NilHandle;
       FboolIsPageBound := False;
-      { TODO: Set method handles to nil }
+      DoNilPageMethodHandles;
+      gDebugDataHandler.DebugInfoText(Self, 'Unloaded library');
     end
     else
-      MessageDlg('Failed to unload library', mtError, [mbOk], 0);
+      gDebugDataHandler.ErrorInfoText(Self, 'Failed to unload library');
   end;
 
   DoSetGUIPageBoundUnbound(FboolIsPageBound);
 end;
 
 procedure TfrmMain.btnPageInitializeFinalizeClick(Sender: TObject);
+var
+  RendererInfos: TPAGE_RendererInfos;
+  RendererInfo: TPAGE_RendererInfo;
+  intLoop: Integer;
 begin
+  // GetRendererInfos and populate combobox
+  FPAGEMethods.PAGEGetRendererInfos(@RendererInfos);
+  frmPageInit.cbRenderer.Clear;
+  { TODO: Make more pretty }
+  for intLoop := 0 to High(RendererInfos) do
+  begin
+    frmPageInit.RendererInfos[frmPageInit.AddRendererInfo] :=
+      RendererInfos[intLoop];
+  end;
+  frmPageInit.DoPopulateRendererInfoCombobox;
+
+
   if frmPageInit.ShowModal = mrOk then
   begin
 
@@ -171,7 +215,7 @@ begin
   lblsKiB1.Enabled := rbWRAMUseCustomSize.Checked;
 end;
 
-function TfrmMain.DoBindPage(PageFileName: String): Boolean;
+function TfrmMain.DoBindPageMethods(PageFileName: String): Boolean;
 begin
   Result := False;
   hPage := LoadLibrary(PageFileName);
@@ -179,23 +223,24 @@ begin
     IntToHex(hPage, 8));
   if hPage <> NilHandle then
   begin
-    { TODO: Bind functions and check handles }
     FPAGEMethods.PAGEInitialize := TPAGE_Initialize(GetProcAddress(hPage,
       PAGE_INITIALIZE_METHODNAME));
     FPAGEMethods.PAGEFinalize := TPAGE_Finalize(GetProcAddress(hPage,
       PAGE_FINALIZE_METHODNAME));
     FPAGEMethods.PAGEBindToApp := TPAGE_BindToApp(GetProcAddress(hPage,
       PAGE_BINDTOAPP_METHODNAME));
+    FPAGEMethods.PAGEGetRendererInfos := TPAGE_GetRendererInfos(GetProcAddress(
+      hPage, PAGE_GETRENDERERINFOS_METHODNAME));
 
     gDebugDataHandler.DebugInfoText(Self, '(DoBindPage) Method handles: ' +
-      Format('$%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
+      Format('$%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
       PtrUInt(FPAGEMethods.PAGEFinalize), PtrUInt(FPAGEMethods.
-      PAGEBindToApp)]));
-
+      PAGEBindToApp), PtrUInt(FPAGEMethods.PAGEGetRendererInfos)]));
 
     Result := (FPAGEMethods.PAGEInitialize <> nil) and
       (FPAGEMethods.PAGEFinalize <> nil) and
-      (FPAGEMethods.PAGEBindToApp <> nil);
+      (FPAGEMethods.PAGEBindToApp <> nil) and
+      (FPAGEMethods.PAGEGetRendererInfos <> nil);
   end;
 end;
 
@@ -234,6 +279,17 @@ begin
     lbldPageInitializedStatus.Font.Color := clRed;
   end;
 
+end;
+
+procedure TfrmMain.DoNilPageMethodHandles;
+begin
+  with FPageMethods do
+  begin
+    PAGEInitialize := nil;
+    PAGEFinalize := nil;
+    PAGEBindToApp := nil;
+    PAGEGetRendererInfos := nil;
+  end;
 end;
 
 end.

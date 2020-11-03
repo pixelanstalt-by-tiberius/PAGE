@@ -89,6 +89,7 @@ var
   intCurrentXPos: Integer;
   intCMDEndPos: Integer;
 begin
+  { TODO: Add word wrap }
   strLeft := FTextBuffer[Line];
   intCurrentXPos := X;
   repeat

@@ -21,6 +21,69 @@ object frmPageInit: TfrmPageInit
     TabOrder = 0
     object tsRendering: TTabSheet
       Caption = 'Rendering'
+      ClientHeight = 193
+      ClientWidth = 402
+      object lblRenderer: TLabel
+        Left = 4
+        Height = 14
+        Top = 12
+        Width = 58
+        Caption = 'Renderer:'
+        ParentColor = False
+      end
+      object cbRenderer: TComboBox
+        Left = 68
+        Height = 29
+        Top = 4
+        Width = 156
+        ItemHeight = 0
+        OnChange = cbRendererChange
+        Style = csDropDownList
+        TabOrder = 0
+      end
+      object gbRendererCapabilities: TGroupBox
+        Left = 4
+        Height = 105
+        Top = 40
+        Width = 392
+        Caption = 'Renderer capabilities'
+        ClientHeight = 88
+        ClientWidth = 390
+        TabOrder = 1
+        object cbIsSoftwareRenderer: TCheckBox
+          Left = 4
+          Height = 23
+          Top = 4
+          Width = 80
+          Caption = 'Software'
+          Enabled = False
+          OnChange = cbIsSoftwareRendererChange
+          OnEditingDone = cbIsSoftwareRendererEditingDone
+          TabOrder = 0
+        end
+        object cbIsAcceleratedRenderer: TCheckBox
+          Left = 112
+          Height = 23
+          Top = 4
+          Width = 97
+          Caption = 'Accelerated'
+          Enabled = False
+          OnChange = cbIsSoftwareRendererChange
+          OnEditingDone = cbIsSoftwareRendererEditingDone
+          TabOrder = 1
+        end
+        object cbIsVSyncPresent: TCheckBox
+          Left = 232
+          Height = 23
+          Top = 4
+          Width = 112
+          Caption = 'VSync present'
+          Enabled = False
+          OnChange = cbIsSoftwareRendererChange
+          OnEditingDone = cbIsSoftwareRendererEditingDone
+          TabOrder = 2
+        end
+      end
     end
     object tsDisplay: TTabSheet
       Caption = 'Display'
@@ -49,7 +112,7 @@ object frmPageInit: TfrmPageInit
       ModalResult = 1
       TabOrder = 0
     end
-    object Button1: TButton
+    object btnCancel: TButton
       Left = 254
       Height = 25
       Top = 4
@@ -57,6 +120,7 @@ object frmPageInit: TfrmPageInit
       Align = alRight
       BorderSpacing.Around = 4
       Caption = 'Cancel'
+      ModalResult = 2
       TabOrder = 1
     end
   end

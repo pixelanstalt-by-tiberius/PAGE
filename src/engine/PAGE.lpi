@@ -25,6 +25,11 @@
       <FormatVersion Value="2"/>
       <Modes Count="0"/>
     </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="PascalSDL2Header"/>
+      </Item1>
+    </RequiredPackages>
     <Units Count="1">
       <Unit0>
         <Filename Value="PAGE.lpr"/>
@@ -39,6 +44,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value=".."/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

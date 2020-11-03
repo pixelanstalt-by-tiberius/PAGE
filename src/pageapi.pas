@@ -1,9 +1,16 @@
+unit PAGEAPI;
+
+{$mode objfpc}{$H+}
+
+interface
+
 // Structures
 type
   TPAGE_RendererInfo = record
     Name: PChar;
     isSoftware: Boolean;
     isAccelerated: Boolean;
+    isVSyncPresent: Boolean;
   end;
 
   TPAGE_RendererInfos = array of TPAGE_RendererInfo;
@@ -23,3 +30,8 @@ const
   PAGE_FINALIZE_METHODNAME = 'PAGE_Do_Finalize';
   PAGE_BINDTOAPP_METHODNAME = 'PAGE_Do_BindToApp';
   PAGE_GETRENDERERINFOS_METHODNAME = 'PAGE_Do_GetRendererInfos';
+
+implementation
+
+end.
+

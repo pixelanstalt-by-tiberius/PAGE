@@ -92,6 +92,8 @@ begin
   FConsoleOutput.Buffer.Add(Format('[%s] %s | %s: %s', [TimeToStr(UnixToDateTime(
     LastInfo.Timestamp)), strSeverity, LastInfo.SenderName, LastInfo.Text]));
 
+  Console.Invalidate;
+
   //memoDebug.Append(Format('[%s] %s | %s: %s', [TimeToStr(UnixToDateTime(
   //  LastInfo.Timestamp)), strSeverity, LastInfo.SenderName, LastInfo.Text]));
 end;
