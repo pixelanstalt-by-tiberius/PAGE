@@ -37,6 +37,8 @@ implementation
 
 procedure TfrmDebugConsole.FormCreate(Sender: TObject);
 begin
+  if Console.Width mod Console.Canvas.TextWidth('X') <> 0 then
+    Width := Width - (Console.Width mod Console.Canvas.TextWidth('X'));
   FConsoleOutput := TConsoleOutput.Create(Console.Canvas, Console.Width,
     Console.Height);
   gDebugDataHandler.OnNewData := @DebugDataHandlerOnNewData;

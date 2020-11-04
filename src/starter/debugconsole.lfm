@@ -2,11 +2,11 @@ object frmDebugConsole: TfrmDebugConsole
   Left = 439
   Height = 468
   Top = 284
-  Width = 786
-  BorderStyle = bsSizeToolWin
+  Width = 780
+  BorderStyle = bsSingle
   Caption = 'frmDebugConsole'
   ClientHeight = 468
-  ClientWidth = 786
+  ClientWidth = 780
   KeyPreview = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -16,7 +16,7 @@ object frmDebugConsole: TfrmDebugConsole
     Left = 0
     Height = 42
     Top = 0
-    Width = 786
+    Width = 780
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -25,7 +25,7 @@ object frmDebugConsole: TfrmDebugConsole
     Left = 0
     Height = 426
     Top = 42
-    Width = 786
+    Width = 780
     Align = alClient
     Font.Height = -13
     Font.Name = 'Monospace'
