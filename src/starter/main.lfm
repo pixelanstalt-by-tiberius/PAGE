@@ -1,7 +1,7 @@
 object frmMain: TfrmMain
-  Left = 438
+  Left = 211
   Height = 296
-  Top = 261
+  Top = 309
   Width = 596
   Caption = 'PaGE LoaD'
   ClientHeight = 296
@@ -28,6 +28,7 @@ object frmMain: TfrmMain
       BorderSpacing.Around = 4
       Caption = 'Play/Start Loop'
       Enabled = False
+      OnClick = btnGameLoopRunClick
       TabOrder = 0
     end
     object btnGameLoopPause: TButton
@@ -39,6 +40,7 @@ object frmMain: TfrmMain
       BorderSpacing.Around = 4
       Caption = 'Pause'
       Enabled = False
+      OnClick = btnGameLoopPauseClick
       TabOrder = 1
     end
     object btnGameLoopNextFrame: TButton

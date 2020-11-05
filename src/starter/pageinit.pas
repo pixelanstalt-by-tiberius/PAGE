@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  ExtCtrls, PAGEAPI;
+  ExtCtrls, Spin, PAGEAPI;
 
 //{$include ../PAGEAPI.inc}
 
@@ -21,14 +21,21 @@ type
     cbIsVSyncPresent: TCheckBox;
     cbRenderer: TComboBox;
     cbIsSoftwareRenderer: TCheckBox;
+    cbSetVSync: TCheckBox;
     gbRendererCapabilities: TGroupBox;
+    gbRendererOptions: TGroupBox;
+    gbWindowSize: TGroupBox;
     lblRenderer: TLabel;
     pcPageInit: TPageControl;
     pnlDialogButtons: TPanel;
+    rbSetRenderAccelerated: TRadioButton;
+    rbSetRenderSoftware: TRadioButton;
+    rbWindowSizeFixed: TRadioButton;
+    rbWindowsizeFullscreen: TRadioButton;
+    sedtWindowWidth: TSpinEdit;
+    sedtWindowHeight: TSpinEdit;
     tsDisplay: TTabSheet;
     tsRendering: TTabSheet;
-    procedure cbIsSoftwareRendererChange(Sender: TObject);
-    procedure cbIsSoftwareRendererEditingDone(Sender: TObject);
     procedure cbRendererChange(Sender: TObject);
   private
     FRendererInfos: TPAGE_RendererInfos;
@@ -65,16 +72,6 @@ begin
     FRendererInfos[cbRenderer.ItemIndex].isVSyncPresent;
 end;
 
-procedure TfrmPageInit.cbIsSoftwareRendererChange(Sender: TObject);
-begin
-
-end;
-
-procedure TfrmPageInit.cbIsSoftwareRendererEditingDone(Sender: TObject);
-begin
-
-end;
-
 function TfrmPageInit.GetRendererInfo(Index: Integer): TPAGE_RendererInfo;
 begin
   if (Index > High(FRendererInfos)) or (Index < Low(FRendererInfos)) then
@@ -106,6 +103,7 @@ begin
   for intLoop := 0 to High(FRendererInfos) do
     cbRenderer.Items.Add(FRendererInfos[intLoop].Name);
   cbRenderer.ItemIndex := 0;
+  cbRendererChange(cbRenderer);
 end;
 
 end.

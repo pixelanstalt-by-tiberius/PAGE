@@ -1,6 +1,7 @@
 program load;
 
 {$mode objfpc}{$H+}
+{$define UseCThreads}
 
 uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}

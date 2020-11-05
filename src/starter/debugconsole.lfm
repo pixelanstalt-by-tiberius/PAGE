@@ -1,7 +1,7 @@
 object frmDebugConsole: TfrmDebugConsole
-  Left = 439
+  Left = 92
   Height = 468
-  Top = 284
+  Top = 114
   Width = 780
   BorderStyle = bsSingle
   Caption = 'frmDebugConsole'

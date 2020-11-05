@@ -18,6 +18,18 @@ type
     PAGEFinalize: TPAGE_Finalize;
     PAGEBindToApp: TPAGE_BindToApp;
     PAGEGetRendererInfos: TPAGE_GetRendererInfos;
+    PAGEEnterGameLoop: TPAGE_EnterGameLoop;
+  end;
+
+  { TPAGEContextThread }
+
+  TPAGEContextThread = class(TThread)
+  private
+    FPageMethods: TPAGE_Methods;
+  protected
+    procedure Execute; override;
+  public
+    property PageMethods: TPAGE_Methods read FPageMethods write FPageMethods;
   end;
 
   { TfrmMain }
@@ -55,6 +67,8 @@ type
     seOverrideFPS: TSpinEdit;
     seVRAMCustomSize: TSpinEdit;
     seWRAMCustomSize: TSpinEdit;
+    procedure btnGameLoopPauseClick(Sender: TObject);
+    procedure btnGameLoopRunClick(Sender: TObject);
     procedure btnPageBindUnbindClick(Sender: TObject);
     procedure btnPageInitializeFinalizeClick(Sender: TObject);
     procedure btnSelectROMClick(Sender: TObject);
@@ -70,6 +84,8 @@ type
     FDesiredVRAMSize: Integer;
 
     FptrWRAM, FptrVRAM, FptrROM: Pointer;
+
+    FPAGEThread: TPAGEContextThread;
 
     function DoBindPageMethods(PageFileName: String = ''): Boolean;
 
@@ -93,6 +109,13 @@ const
 implementation
 
 {$R *.lfm}
+
+{ TPAGEContextThread }
+
+procedure TPAGEContextThread.Execute;
+begin
+  FPageMethods.PAGEEnterGameLoop;
+end;
 
 { TfrmMain }
 
@@ -148,11 +171,12 @@ begin
     if (FboolIsPageBound) then //and (FboolIsPageInitialized) then
     begin
       PageLibName := OpenPageDialog.FileName;
-      if not FPAGEMethods.PAGEBindToApp(nil, nil, nil, 0, 0, 0) then
+      if not FPAGEMethods.PAGEBindToApp(FptrWRAM, FptrVRAM, nil, 2*MB, 612*KB,
+        0) then
       begin
         gDebugDataHandler.ErrorInfoText(Self, 'Failed to bind PAGE. ' +
           'PAGEBindToApp returned FALSE');
-      end;
+      end
     end;
   end
   else
@@ -162,6 +186,7 @@ begin
       hPage := NilHandle;
       FboolIsPageBound := False;
       DoNilPageMethodHandles;
+      FPAGEThread.Free;
       gDebugDataHandler.DebugInfoText(Self, 'Unloaded library');
     end
     else
@@ -171,27 +196,51 @@ begin
   DoSetGUIPageBoundUnbound(FboolIsPageBound);
 end;
 
+procedure TfrmMain.btnGameLoopRunClick(Sender: TObject);
+begin
+  FPAGEThread := TPAGEContextThread.Create(True);
+  FPAGEThread.FreeOnTerminate := True;
+  FPAGEThread.PageMethods := FPageMethods;
+  TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := False;
+  FPAGEThread.Start;
+end;
+
+procedure TfrmMain.btnGameLoopPauseClick(Sender: TObject);
+begin
+  TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := True;
+end;
+
 procedure TfrmMain.btnPageInitializeFinalizeClick(Sender: TObject);
 var
   RendererInfos: TPAGE_RendererInfos;
-  RendererInfo: TPAGE_RendererInfo;
   intLoop: Integer;
 begin
-  // GetRendererInfos and populate combobox
-  FPAGEMethods.PAGEGetRendererInfos(@RendererInfos);
-  frmPageInit.cbRenderer.Clear;
-  { TODO: Make more pretty }
-  for intLoop := 0 to High(RendererInfos) do
-  begin
-    frmPageInit.RendererInfos[frmPageInit.AddRendererInfo] :=
-      RendererInfos[intLoop];
-  end;
-  frmPageInit.DoPopulateRendererInfoCombobox;
-
-
-  if frmPageInit.ShowModal = mrOk then
+  if FboolIsPageInitialized then
   begin
 
+  end
+  else
+  begin
+    // GetRendererInfos and populate combobox
+    FPAGEMethods.PAGEGetRendererInfos(@RendererInfos);
+    frmPageInit.cbRenderer.Clear;
+    { TODO: Make more pretty }
+    for intLoop := 0 to High(RendererInfos) do
+    begin
+      frmPageInit.RendererInfos[frmPageInit.AddRendererInfo] :=
+        RendererInfos[intLoop];
+    end;
+    frmPageInit.DoPopulateRendererInfoCombobox;
+
+
+    if frmPageInit.ShowModal = mrOk then
+      with frmPageInit do
+      begin
+        DoSetGUIPageInitializeFinalize(FPageMethods.PAGEInitialize(
+          cbRenderer.ItemIndex, rbSetRenderAccelerated.Checked,
+          cbSetVSync.Checked, rbWindowsizeFullscreen.Checked, Left, Top,
+          sedtWindowWidth.Value, sedtWindowHeight.Value));
+      end;
   end;
 end;
 
@@ -231,21 +280,27 @@ begin
       PAGE_BINDTOAPP_METHODNAME));
     FPAGEMethods.PAGEGetRendererInfos := TPAGE_GetRendererInfos(GetProcAddress(
       hPage, PAGE_GETRENDERERINFOS_METHODNAME));
+    FPAGEMethods.PAGEEnterGameLoop := TPAGE_EnterGameLoop(GetProcAddress(
+      hPage, PAGE_ENTERGAMELOOP_METHODNAME));
 
     gDebugDataHandler.DebugInfoText(Self, '(DoBindPage) Method handles: ' +
-      Format('$%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
+      Format('$%x $%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
       PtrUInt(FPAGEMethods.PAGEFinalize), PtrUInt(FPAGEMethods.
-      PAGEBindToApp), PtrUInt(FPAGEMethods.PAGEGetRendererInfos)]));
+      PAGEBindToApp), PtrUInt(FPAGEMethods.PAGEGetRendererInfos),
+      PtrUInt(FPAGEMethods.PAGEEnterGameLoop)]));
 
     Result := (FPAGEMethods.PAGEInitialize <> nil) and
       (FPAGEMethods.PAGEFinalize <> nil) and
       (FPAGEMethods.PAGEBindToApp <> nil) and
-      (FPAGEMethods.PAGEGetRendererInfos <> nil);
+      (FPAGEMethods.PAGEGetRendererInfos <> nil) and
+      (FPAGEMethods.PAGEEnterGameLoop <> nil);
   end;
 end;
 
 procedure TfrmMain.DoSetGUIPageBoundUnbound(isPageBound: Boolean);
 begin
+  { TODO: If PAGE is initialized and then unbound, controls for game loop must
+          be disabled }
   if isPageBound then
   begin
     btnPageBindUnbind.Caption := 'Unbind';
@@ -271,12 +326,16 @@ begin
     btnPageInitializeFinalize.Caption := 'Finalize';
     lbldPageInitializedStatus.Caption := 'Initialized';
     lbldPageInitializedStatus.Font.Color := clGreen;
+    btnGameLoopRun.Enabled := True;
+    btnGameLoopPause.Enabled := True;
   end
   else
   begin
     btnPageInitializeFinalize.Caption := 'Initialize ...';
     lbldPageInitializedStatus.Caption := 'Uninitialized';
     lbldPageInitializedStatus.Font.Color := clRed;
+    btnGameLoopRun.Enabled := False;
+    btnGameLoopPause.Enabled := False;
   end;
 
 end;

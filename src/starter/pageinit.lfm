@@ -1,7 +1,7 @@
 object frmPageInit: TfrmPageInit
-  Left = 700
+  Left = 266
   Height = 268
-  Top = 308
+  Top = 227
   Width = 420
   BorderStyle = bsToolWindow
   Caption = 'PaGE initialization options'
@@ -43,11 +43,11 @@ object frmPageInit: TfrmPageInit
       end
       object gbRendererCapabilities: TGroupBox
         Left = 4
-        Height = 105
+        Height = 48
         Top = 40
         Width = 392
         Caption = 'Renderer capabilities'
-        ClientHeight = 88
+        ClientHeight = 31
         ClientWidth = 390
         TabOrder = 1
         object cbIsSoftwareRenderer: TCheckBox
@@ -57,8 +57,6 @@ object frmPageInit: TfrmPageInit
           Width = 80
           Caption = 'Software'
           Enabled = False
-          OnChange = cbIsSoftwareRendererChange
-          OnEditingDone = cbIsSoftwareRendererEditingDone
           TabOrder = 0
         end
         object cbIsAcceleratedRenderer: TCheckBox
@@ -68,8 +66,6 @@ object frmPageInit: TfrmPageInit
           Width = 97
           Caption = 'Accelerated'
           Enabled = False
-          OnChange = cbIsSoftwareRendererChange
-          OnEditingDone = cbIsSoftwareRendererEditingDone
           TabOrder = 1
         end
         object cbIsVSyncPresent: TCheckBox
@@ -79,14 +75,105 @@ object frmPageInit: TfrmPageInit
           Width = 112
           Caption = 'VSync present'
           Enabled = False
-          OnChange = cbIsSoftwareRendererChange
-          OnEditingDone = cbIsSoftwareRendererEditingDone
+          TabOrder = 2
+        end
+      end
+      object gbRendererOptions: TGroupBox
+        Left = 4
+        Height = 48
+        Top = 92
+        Width = 392
+        Caption = 'Renderer options'
+        ClientHeight = 31
+        ClientWidth = 390
+        TabOrder = 2
+        object cbSetVSync: TCheckBox
+          Left = 232
+          Height = 23
+          Top = 4
+          Width = 108
+          Caption = 'Enable VSync'
+          TabOrder = 0
+        end
+        object rbSetRenderSoftware: TRadioButton
+          Left = 4
+          Height = 23
+          Top = 4
+          Width = 80
+          Caption = 'Software'
+          Checked = True
+          TabOrder = 1
+          TabStop = True
+        end
+        object rbSetRenderAccelerated: TRadioButton
+          Left = 112
+          Height = 23
+          Top = 4
+          Width = 97
+          Caption = 'Accelerated'
           TabOrder = 2
         end
       end
     end
     object tsDisplay: TTabSheet
       Caption = 'Display'
+      ClientHeight = 193
+      ClientWidth = 402
+      object gbWindowSize: TGroupBox
+        Left = 4
+        Height = 76
+        Top = 4
+        Width = 394
+        Align = alTop
+        BorderSpacing.Around = 4
+        Caption = 'Windowsize'
+        ClientHeight = 59
+        ClientWidth = 392
+        TabOrder = 0
+        object rbWindowsizeFullscreen: TRadioButton
+          Left = 4
+          Height = 23
+          Top = 4
+          Width = 384
+          Align = alTop
+          BorderSpacing.Around = 4
+          Caption = 'Fullscreen'
+          Enabled = False
+          TabOrder = 0
+        end
+        object rbWindowSizeFixed: TRadioButton
+          Left = 4
+          Height = 23
+          Top = 31
+          Width = 384
+          Align = alTop
+          BorderSpacing.Around = 4
+          Caption = 'Fixed size'
+          Checked = True
+          TabOrder = 2
+          TabStop = True
+        end
+        object sedtWindowWidth: TSpinEdit
+          Left = 104
+          Height = 27
+          Top = 28
+          Width = 86
+          MaxValue = 1280
+          MinValue = 100
+          TabOrder = 1
+          Value = 416
+        end
+      end
+      object sedtWindowHeight: TSpinEdit
+        Left = 212
+        Height = 27
+        Top = 48
+        Width = 86
+        MaxValue = 1280
+        MinValue = 100
+        TabOrder = 1
+        Value = 224
+      end
     end
   end
   object pnlDialogButtons: TPanel
