@@ -3,18 +3,21 @@ library PAGE;
 {$mode objfpc}{$H+}
 
 uses
-  Classes, SDL2, PageAPI;
+  {$ifdef UNIX} cthreads,{$endif}
+  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue;
 
 var
   WRAM, VRAM, ROM: Pointer;
   WRAMSize, VRAMSize, ROMSize: Integer;
 
+  boolShowSplashScreen: Boolean = True;
 
 function PAGE_Do_Initialize(RendererNum: Integer; Accelerated: Boolean;
     EnableVSYNC: Boolean; Fullscreen: Boolean; X, Y,
     WinWidth, WinHeight: Integer): Boolean;
 var
   WindowFlags, RendererFlags: UInt32;
+  nEvent: TPAGE_Event;
 begin
   Result := False;
 
@@ -94,15 +97,95 @@ begin
   end;
 end;
 
-function PAGE_Do_EnterGameLoop(overrideDelta: Integer = -1): Boolean;
+function PAGE_Do_Splashscreen(overrideDelta: Double = -1): Boolean;
 var
-  r, g, b: Byte;
-  fwd: Boolean;
+  textureLogo1, textureLogo2: PSDL_Texture;
+  alpha1, alpha2, alpha3: Double;
+  perfCountFreq, perfCountLast, perfCountCurrent: UInt64;
+  delta: Double;
 begin
-  r := 0;
-  g := 0;
-  b := 0;
-  fwd := true;
+  { TODO: Load from resource (assetfile or integrated in so/dll }
+  { TODO: No hardcoded filenames! }
+  textureLogo1 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+    '../../res/splash_1.png');
+  SDL_SetTextureBlendMode(textureLogo1, SDL_BLENDMODE_BLEND);
+  textureLogo2 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+    '../../res/splash_2.png');
+  SDL_SetTextureBlendMode(textureLogo2, SDL_BLENDMODE_BLEND);
+
+  { TODO: Make global }
+  perfCountFreq := SDL_GetPerformanceFrequency;
+  perfCountLast := SDL_GetPerformanceCounter;
+
+  SDL_SetRenderDrawColor(TPAGE_WRAMLayout(WRAM^).SDLRenderer, 0, 0, 0, 0);
+  SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+
+  alpha1 := 0;
+  alpha2 := 0;
+  alpha3 := 255;
+
+  while (boolShowSplashscreen) do
+  begin
+    perfCountCurrent := SDL_GetPerformanceCounter;
+    delta := (perfCountCurrent - perfCountLast)/(perfCountFreq/10);
+
+    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    if alpha1 < 255 then
+    begin
+      SDL_SetTextureAlphaMod(textureLogo1, Round(alpha1));
+      alpha1 := alpha1+(delta*25);
+      if alpha1 > 255 then
+        alpha1 := 255;
+    end;
+
+    if (alpha1 >= 255) and (alpha2 <= 255) then
+    begin
+      SDL_SetTextureAlphaMod(textureLogo2, Round(alpha2));
+      alpha2 := alpha2+(delta*25);
+      if alpha2 > 255 then
+        alpha2 := 255;
+    end;
+
+    if (alpha1 >= 255) and (alpha2 >= 255) then
+    begin
+      SDL_SetTextureAlphaMod(textureLogo1, 0);
+      SDL_SetTextureAlphaMod(textureLogo2, Round(alpha3));
+      alpha3 := alpha3-(delta*25);
+      if alpha3 <= 0 then
+        alpha3 := 0;
+    end;
+
+    if alpha1 > 0 then
+      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1, nil,
+        nil);
+
+    if alpha2 > 0 then
+      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2, nil,
+        nil);
+
+    if alpha3 < 255 then
+      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2, nil,
+        nil);
+
+    perfCountLast := perfCountCurrent;
+    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+
+    if (alpha1 >= 255) and (alpha2 >= 255) and (alpha3 <= 0) then
+    begin
+      SDL_Delay(1000);
+      boolShowSplashscreen := False;
+    end;
+  end;
+
+  SDL_DestroyTexture(textureLogo1);
+  SDL_DestroyTexture(textureLogo2);
+  gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    'Splashscreen done');
+end;
+
+function PAGE_Do_EnterGameLoop(overrideDelta: Double = -1): Boolean;
+begin
+  PAGE_Do_Splashscreen;
   while not (TPAGE_WRAMLayout(WRAM^).boolExitGameLoop) do
   begin
     // Check input
@@ -116,40 +199,22 @@ begin
       // -> render vram
 
     // wait?
-
-    if fwd then
-    begin
-      if r < 255 then
-        Inc(r);
-      if (r = 255) and (g < 255) then
-        Inc(g);
-      if (r = 255) and (g = 255) and (b < 255) then
-        Inc(b);
-      if (r = 255) and (g = 255) and (b = 255) then
-        fwd := false;
-    end
-    else
-    begin
-      if r > 0 then
-        Dec(r);
-      if (r = 0) and (g > 0) then
-        Dec(g);
-      if (r = 0) and (g = 0) and (b > 0) then
-        Dec(b);
-      if (r = 0) and (g = 0) and (b = 0) then
-        fwd := true;
-    end;
-
-    SDL_SetRenderDrawColor(TPAGE_WRAMLayout(WRAM^).SDLRenderer, r, g, b, 255);
-    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-
-    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    gEventQueue.DoDispatchEvents;
   end;
+end;
+
+function PAGE_Do_AddEventQueueListener(aEventListener: TPAGE_EventQueueListener;
+  ListenToSubSystems: TPAGE_SubSystems): Boolean;
+begin
+  gEventQueue.AddEventListener(aEventListener, ListenToSubSystems);
+  Result := True;
+  { TODO: Handle result }
 end;
 
 exports
   PAGE_Do_Initialize, PAGE_Do_Finalize, PAGE_Do_BindToApp,
-  PAGE_Do_GetRendererInfos, PAGE_Do_EnterGameLoop;
+  PAGE_Do_GetRendererInfos, PAGE_Do_EnterGameLoop, PAGE_Do_Splashscreen,
+  PAGE_Do_AddEventQueueListener;
 
 end.
 

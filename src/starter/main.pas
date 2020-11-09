@@ -13,12 +13,16 @@ uses
 {$include ../PAGEconst.inc}
 
 type
+
+  { TPAGE_Methods }
+
   TPAGE_Methods = record
     PAGEInitialize: TPAGE_Initialize;
     PAGEFinalize: TPAGE_Finalize;
     PAGEBindToApp: TPAGE_BindToApp;
     PAGEGetRendererInfos: TPAGE_GetRendererInfos;
     PAGEEnterGameLoop: TPAGE_EnterGameLoop;
+    PAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
   end;
 
   { TPAGEContextThread }
@@ -103,7 +107,7 @@ var
   frmMain: TfrmMain;
 
 const
-  PageLibName: String = 'page.' + SharedSuffix;
+  PageLibName: String = {$ifdef LINUX}'./lib' +{$endif} 'page.' + SharedSuffix;
   PageROMExtension: String = '.' + SharedSuffix;
 
 implementation
@@ -162,7 +166,8 @@ begin
     begin
       repeat
         boolLibOpenDialogExecuted := OpenPageDialog.Execute;
-        FboolIsPageBound := DoBindPageMethods(OpenPageDialog.FileName);
+        PageLibName := OpenPageDialog.FileName;
+        FboolIsPageBound := DoBindPageMethods(PageLibName);
       until (not boolLibOpenDialogExecuted) or (FboolIsPageBound);
     end;
 
@@ -170,7 +175,6 @@ begin
             initialize }
     if (FboolIsPageBound) then //and (FboolIsPageInitialized) then
     begin
-      PageLibName := OpenPageDialog.FileName;
       if not FPAGEMethods.PAGEBindToApp(FptrWRAM, FptrVRAM, nil, 2*MB, 612*KB,
         0) then
       begin
@@ -236,10 +240,11 @@ begin
     if frmPageInit.ShowModal = mrOk then
       with frmPageInit do
       begin
-        DoSetGUIPageInitializeFinalize(FPageMethods.PAGEInitialize(
+        FboolIsPageInitialized := FPageMethods.PAGEInitialize(
           cbRenderer.ItemIndex, rbSetRenderAccelerated.Checked,
-          cbSetVSync.Checked, rbWindowsizeFullscreen.Checked, Left, Top,
-          sedtWindowWidth.Value, sedtWindowHeight.Value));
+          cbSetVSync.Checked, rbWindowsizeFullscreen.Checked, Left+Width, Top,
+          sedtWindowWidth.Value, sedtWindowHeight.Value);
+        DoSetGUIPageInitializeFinalize(FboolIsPageInitialized);
       end;
   end;
 end;
@@ -272,6 +277,8 @@ begin
     IntToHex(hPage, 8));
   if hPage <> NilHandle then
   begin
+    { TODO: Encapsulate methods in class and enumarate method pointer and
+            names in array(s) }
     FPAGEMethods.PAGEInitialize := TPAGE_Initialize(GetProcAddress(hPage,
       PAGE_INITIALIZE_METHODNAME));
     FPAGEMethods.PAGEFinalize := TPAGE_Finalize(GetProcAddress(hPage,
@@ -282,18 +289,25 @@ begin
       hPage, PAGE_GETRENDERERINFOS_METHODNAME));
     FPAGEMethods.PAGEEnterGameLoop := TPAGE_EnterGameLoop(GetProcAddress(
       hPage, PAGE_ENTERGAMELOOP_METHODNAME));
+    FPAGEMethods.PAGEAddEventQueueListener := TPAGE_AddEventQueueListener(
+      GetProcAddress(hPage, PAGE_ADDEVENTQUEUELISTENER_METHODNAME));
 
     gDebugDataHandler.DebugInfoText(Self, '(DoBindPage) Method handles: ' +
-      Format('$%x $%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
+      Format('$%x $%x $%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
       PtrUInt(FPAGEMethods.PAGEFinalize), PtrUInt(FPAGEMethods.
       PAGEBindToApp), PtrUInt(FPAGEMethods.PAGEGetRendererInfos),
-      PtrUInt(FPAGEMethods.PAGEEnterGameLoop)]));
+      PtrUInt(FPAGEMethods.PAGEEnterGameLoop),
+      PtrUInt(FPAGEMethods.PAGEAddEventQueueListener)]));
 
     Result := (FPAGEMethods.PAGEInitialize <> nil) and
       (FPAGEMethods.PAGEFinalize <> nil) and
       (FPAGEMethods.PAGEBindToApp <> nil) and
       (FPAGEMethods.PAGEGetRendererInfos <> nil) and
-      (FPAGEMethods.PAGEEnterGameLoop <> nil);
+      (FPAGEMethods.PAGEEnterGameLoop <> nil) and
+      (FPAGEMethods.PAGEAddEventQueueListener <> nil);
+
+    if Result then
+      FPAGEMethods.PAGEAddEventQueueListener(@EventQueueDispatch, [psDebug]);
   end;
 end;
 
@@ -326,8 +340,8 @@ begin
     btnPageInitializeFinalize.Caption := 'Finalize';
     lbldPageInitializedStatus.Caption := 'Initialized';
     lbldPageInitializedStatus.Font.Color := clGreen;
-    btnGameLoopRun.Enabled := True;
-    btnGameLoopPause.Enabled := True;
+    btnGameLoopRun.Enabled := FboolIsPageBound;
+    btnGameLoopPause.Enabled := FboolIsPageBound;
   end
   else
   begin
@@ -337,7 +351,6 @@ begin
     btnGameLoopRun.Enabled := False;
     btnGameLoopPause.Enabled := False;
   end;
-
 end;
 
 procedure TfrmMain.DoNilPageMethodHandles;

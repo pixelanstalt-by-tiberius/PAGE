@@ -5,7 +5,7 @@ unit DebugDataHandler;
 interface
 
 uses
-  Classes, SysUtils, DateUtils;
+  Classes, SysUtils, DateUtils, PAGEAPI;
 
 type
   TInfoSeverity = (isDebug, isWarning, isError, isException);
@@ -27,17 +27,24 @@ type
     procedure SetOnNewData(AValue: TNotifyEvent);
   protected
     FOnNewData: TNotifyEvent;
+    { TODO: Modify to constant }
+    FDispatchedEvents: array[0..65535] of TPAGE_Event;
+    FDispatchedEventStrings: array[0..65535] of String;
+    FNumDispatchedEvents: Integer;
 
     FInfos: array of TInfo;
 
     procedure AddInfo(ASenderName, AText: String; ASeverity: TInfoSeverity);
   public
     constructor Create;
+    destructor Destroy; override;
 
     procedure DebugInfoText(ASender: TObject; ADebugInfo: String);
     procedure WarningInfoText(ASender: TObject; AWarningInfo: String);
     procedure ErrorInfoText(ASender: TObject; AErrorInfo: String);
     procedure ExceptionInfoText(ASender: TObject; AExceptionInfo: String);
+
+    procedure UpdateDispatchedEventQueue;
 
     property InfoCount: Integer read GetInfoCount;
     property Infos[Index: Integer]: TInfo read GetInfo;
@@ -45,8 +52,11 @@ type
   end;
 
 
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event; aMessage: PChar);
+
 var
   gDebugDataHandler: TDebugDataHandler;
+  gEventDispatchCriticalSection: TRTLCriticalSection;
 
 implementation
 
@@ -98,6 +108,14 @@ begin
     Exception.Create('Tried to create singleton ''Debug Data Handler'' twice');
 
   FOnNewData := nil;
+  FNumDispatchedEvents := 0;
+  InitCriticalSection(gEventDispatchCriticalSection);
+end;
+
+destructor TDebugDataHandler.Destroy;
+begin
+  DoneCriticalSection(gEventDispatchCriticalSection);
+  SetLength(FInfos, 0);
 end;
 
 procedure TDebugDataHandler.DebugInfoText(ASender: TObject; ADebugInfo: String);
@@ -120,6 +138,49 @@ procedure TDebugDataHandler.ExceptionInfoText(ASender: TObject;
   AExceptionInfo: String);
 begin
   AddInfo(ASender.ClassName, AExceptionInfo, isException);
+end;
+
+procedure TDebugDataHandler.UpdateDispatchedEventQueue;
+var
+  intLoop, NumEvents: Integer;
+begin
+  EnterCriticalSection(gEventDispatchCriticalSection);
+  NumEvents := FNumDispatchedEvents;
+  LeaveCriticalSection(gEventDispatchCriticalSection);
+
+  // Loop dispatched events
+  for intLoop := 0 to NumEvents-1 do
+  begin
+    AddInfo('EventQueue', Format('%s (@Tick %d)', [
+      FDispatchedEventStrings[intLoop], FDispatchedEvents[intLoop].EventTick]),
+      isDebug);
+  end;
+
+  { TODO: Implement rolling buffer }
+  EnterCriticalSection(gEventDispatchCriticalSection);
+  if NumEvents = FNumDispatchedEvents then
+    FNumDispatchedEvents := 0
+  else
+    Exception.Create('This should not happen! Implement the f*cking' +
+      'rolling buffer!');
+  LeaveCriticalSection(gEventDispatchCriticalSection);
+end;
+
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event;
+  aMessage: PChar);
+begin
+  EnterCriticalSection(gEventDispatchCriticalSection);
+  Inc(gDebugDataHandler.FNumDispatchedEvents);
+  gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
+    FNumDispatchedEvents-1] := aDispatchedEvent;
+  if (aDispatchedEvent.EventMessage = emString) then
+  begin
+    { TODO: Make sure that string is actually copied }
+    gDebugDataHandler.FDispatchedEventStrings[gDebugDataHandler.
+      FNumDispatchedEvents-1] := aMessage;
+  end;
+
+  LeaveCriticalSection(gEventDispatchCriticalSection);
 end;
 
 Initialization

@@ -32,4 +32,9 @@ object frmDebugConsole: TfrmDebugConsole
     ParentFont = False
     OnPaint = ConsolePaint
   end
+  object UpdateDispatchedEvents: TTimer
+    OnTimer = UpdateDispatchedEventsTimer
+    Left = 471
+    Top = 323
+  end
 end

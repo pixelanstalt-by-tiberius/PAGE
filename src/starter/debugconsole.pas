@@ -15,10 +15,12 @@ type
   TfrmDebugConsole = class(TForm)
     Console: TPaintBox;
     pnlConsoleView: TPanel;
+    UpdateDispatchedEvents: TTimer;
     procedure ConsolePaint(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
+    procedure UpdateDispatchedEventsTimer(Sender: TObject);
   private
   protected
     FConsoleOutput: TConsoleOutput;
@@ -70,6 +72,11 @@ begin
   end;
 
   Console.Invalidate;
+end;
+
+procedure TfrmDebugConsole.UpdateDispatchedEventsTimer(Sender: TObject);
+begin
+  gDebugDataHandler.UpdateDispatchedEventQueue;
 end;
 
 procedure TfrmDebugConsole.ConsolePaint(Sender: TObject);

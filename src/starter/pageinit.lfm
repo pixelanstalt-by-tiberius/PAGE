@@ -93,6 +93,8 @@ object frmPageInit: TfrmPageInit
           Top = 4
           Width = 108
           Caption = 'Enable VSync'
+          Checked = True
+          State = cbChecked
           TabOrder = 0
         end
         object rbSetRenderSoftware: TRadioButton
@@ -101,9 +103,7 @@ object frmPageInit: TfrmPageInit
           Top = 4
           Width = 80
           Caption = 'Software'
-          Checked = True
           TabOrder = 1
-          TabStop = True
         end
         object rbSetRenderAccelerated: TRadioButton
           Left = 112
@@ -111,7 +111,9 @@ object frmPageInit: TfrmPageInit
           Top = 4
           Width = 97
           Caption = 'Accelerated'
+          Checked = True
           TabOrder = 2
+          TabStop = True
         end
       end
     end
@@ -163,16 +165,16 @@ object frmPageInit: TfrmPageInit
           TabOrder = 1
           Value = 416
         end
-      end
-      object sedtWindowHeight: TSpinEdit
-        Left = 212
-        Height = 27
-        Top = 48
-        Width = 86
-        MaxValue = 1280
-        MinValue = 100
-        TabOrder = 1
-        Value = 224
+        object sedtWindowHeight: TSpinEdit
+          Left = 212
+          Height = 27
+          Top = 28
+          Width = 86
+          MaxValue = 1280
+          MinValue = 100
+          TabOrder = 3
+          Value = 224
+        end
       end
     end
   end

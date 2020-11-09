@@ -25,6 +25,26 @@ type
     boolExitGameLoop: Boolean;
   end;
 
+  TPAGE_EventType = (etNotification, etRequest);
+  TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
+    psROM);
+  TPAGE_SubSystems = set of TPAGE_SubSystem;
+  TPAGE_EventMessage = (emString, emDummy);
+
+  { TODO: Maybe integrate message string in record }
+  TPAGE_Event = record
+    EventType: TPAGE_EventType;
+    EventTick: UInt64;
+    EventSenderSubsystem: TPAGE_SubSystem;
+    EventReceiverSubsystem: TPAGE_SubSystem;
+    EventMessage: TPAGE_EventMessage; // ggf. Word -> Array mit Strings verweisen
+    EventMessageString: Word;
+  end;
+
+  TPAGE_EventQueueListener = procedure(aDispatchedEvent: TPAGE_Event;
+    aMessage: PChar);
+  PPAGE_EventQueueListener = ^TPAGE_EventQueueListener;
+
 // Methods
 type
   TPAGE_Initialize = function(RendererNum: Integer; Accelerated: Boolean;
@@ -35,7 +55,10 @@ type
     ROMSize: Integer): Boolean;
   TPAGE_GetRendererInfos = function(RendererInfos: PPAGE_RendererInfos):
     Boolean;
-  TPAGE_EnterGameLoop = function(overrideDelta: Integer = -1): Boolean;
+  TPAGE_EnterGameLoop = function(overrideDelta: Double = -1): Boolean;
+  TPAGE_Splashscreen = function(overrideDelta: Double = -1): Boolean;
+  TPAGE_AddEventQueueListener = function(aEventListener: TPAGE_EventQueueListener;
+    ListenToSubSystems: TPAGE_SubSystems): Boolean;
 
 
 const
@@ -44,6 +67,8 @@ const
   PAGE_BINDTOAPP_METHODNAME = 'PAGE_Do_BindToApp';
   PAGE_GETRENDERERINFOS_METHODNAME = 'PAGE_Do_GetRendererInfos';
   PAGE_ENTERGAMELOOP_METHODNAME = 'PAGE_Do_EnterGameLoop';
+  PAGE_SPLASHSCREEN_METHODNAME = 'PAGE_Do_Splashscreen';
+  PAGE_ADDEVENTQUEUELISTENER_METHODNAME = 'PAGE_Do_AddEventQueueListener';
 
 implementation
 
