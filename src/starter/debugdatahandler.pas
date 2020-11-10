@@ -7,6 +7,10 @@ interface
 uses
   Classes, SysUtils, DateUtils, PAGEAPI;
 
+const
+  EVENT_QUEUE_SIZE = High(Word);
+  INFO_INCREASE_AMOUNT = 1024;
+
 type
   TInfoSeverity = (isDebug, isWarning, isError, isException);
 
@@ -27,12 +31,12 @@ type
     procedure SetOnNewData(AValue: TNotifyEvent);
   protected
     FOnNewData: TNotifyEvent;
-    { TODO: Modify to constant }
-    FDispatchedEvents: array[0..65535] of TPAGE_Event;
-    FDispatchedEventStrings: array[0..65535] of String;
-    FNumDispatchedEvents: Integer;
+    { DONE: Modify to constant }
+    FDispatchedEvents: array[0..EVENT_QUEUE_SIZE-1] of TPAGE_Event;
+    FDispatchedEventsHead, FDispatchedEventsTail: Integer;
 
     FInfos: array of TInfo;
+    FInfoHead: Integer;
 
     procedure AddInfo(ASenderName, AText: String; ASeverity: TInfoSeverity);
   public
@@ -52,7 +56,7 @@ type
   end;
 
 
-procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event; aMessage: PChar);
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
 
 var
   gDebugDataHandler: TDebugDataHandler;
@@ -64,12 +68,12 @@ implementation
 
 function TDebugDataHandler.GetInfoCount: Integer;
 begin
-  Result := Length(FInfos);
+  Result := FInfoHead+1;
 end;
 
 function TDebugDataHandler.GetInfo(Index: Integer): TInfo;
 begin
-  if (Index > High(FInfos)) or (Index < Low(FInfos)) then
+  if (Index > FInfoHead) or (Index < Low(FInfos)) then
     Exception.CreateFmt('Info Index (%d) out of bounds', [Index]);
 
   Result := FInfos[Index];
@@ -88,9 +92,13 @@ end;
 procedure TDebugDataHandler.AddInfo(ASenderName, AText: String;
   ASeverity: TInfoSeverity);
 begin
-  // TODO: Reserve enough space and save current pointer
-  SetLength(FInfos, Length(FInfos)+1);
-  with FInfos[High(FInfos)] do
+  // DONE: Reserve enough space and save current pointer
+  if (FInfoHead = -1) or (FInfoHead+1 > Length(FInfos)) then
+    SetLength(FInfos, Length(FInfos)+INFO_INCREASE_AMOUNT);
+
+  Inc(FInfoHead);
+
+  with FInfos[FInfoHead] do
   begin
     Timestamp := DateTimeToUnix(Now);
     Severity := ASeverity;
@@ -108,7 +116,9 @@ begin
     Exception.Create('Tried to create singleton ''Debug Data Handler'' twice');
 
   FOnNewData := nil;
-  FNumDispatchedEvents := 0;
+  FDispatchedEventsHead := 0;
+  FDispatchedEventsTail := -1;
+  FInfoHead := -1;
   InitCriticalSection(gEventDispatchCriticalSection);
 end;
 
@@ -142,44 +152,77 @@ end;
 
 procedure TDebugDataHandler.UpdateDispatchedEventQueue;
 var
-  intLoop, NumEvents: Integer;
+  intLoop, EventHead, EventTail: Integer;
 begin
+  // Exit update if no event was added
+  if (FDispatchedEventsTail = -1) or
+    (FDispatchedEventsTail = FDispatchedEventsHead) then
+    Exit;
+
   EnterCriticalSection(gEventDispatchCriticalSection);
-  NumEvents := FNumDispatchedEvents;
+  EventHead := FDispatchedEventsHead;
+  EventTail := FDispatchedEventsTail;
   LeaveCriticalSection(gEventDispatchCriticalSection);
 
   // Loop dispatched events
-  for intLoop := 0 to NumEvents-1 do
+  if EventHead > EventTail then
+    for intLoop := EventTail to EventHead-1 do
+    begin
+      if FDispatchedEvents[intLoop].EventMessage = emString then
+        AddInfo('EventQueue', Format('%s (@Tick %d)', [
+          FDispatchedEvents[intLoop].EventMessageString,
+          FDispatchedEvents[intLoop].EventTick]), isDebug);
+    end
+  else
   begin
-    AddInfo('EventQueue', Format('%s (@Tick %d)', [
-      FDispatchedEventStrings[intLoop], FDispatchedEvents[intLoop].EventTick]),
-      isDebug);
+    // EventHead is before EventTail (ringbuffer looped)
+    for intLoop := EventTail to High(FDispatchedEvents) do
+      if FDispatchedEvents[intLoop].EventMessage = emString then
+        AddInfo('EventQueue', Format('%s (@Tick %d)', [
+          FDispatchedEvents[intLoop].EventMessageString,
+          FDispatchedEvents[intLoop].EventTick]), isDebug);
+
+    for intLoop := 0 to EventHead-1 do
+       if FDispatchedEvents[intLoop].EventMessage = emString then
+        AddInfo('EventQueue', Format('%s (@Tick %d)', [
+          FDispatchedEvents[intLoop].EventMessageString,
+          FDispatchedEvents[intLoop].EventTick]), isDebug);
   end;
 
-  { TODO: Implement rolling buffer }
+
+  { DONE: Implement rolling buffer }
   EnterCriticalSection(gEventDispatchCriticalSection);
-  if NumEvents = FNumDispatchedEvents then
-    FNumDispatchedEvents := 0
-  else
-    Exception.Create('This should not happen! Implement the f*cking' +
-      'rolling buffer!');
+  FDispatchedEventsTail := EventHead;
   LeaveCriticalSection(gEventDispatchCriticalSection);
 end;
 
-procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event;
-  aMessage: PChar);
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
 begin
+  if (gDebugDataHandler.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE <>
+    gDebugDataHandler.FDispatchedEventsTail then
+    Exception.Create('Event queue overflow');
+
   EnterCriticalSection(gEventDispatchCriticalSection);
-  Inc(gDebugDataHandler.FNumDispatchedEvents);
+  if gDebugDataHandler.FDispatchedEventsTail < 0 then
+    gDebugDataHandler.FDispatchedEventsTail := 0;
+
   gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
-    FNumDispatchedEvents-1] := aDispatchedEvent;
+    FDispatchedEventsHead] := aDispatchedEvent;
+
+
   if (aDispatchedEvent.EventMessage = emString) then
   begin
-    { TODO: Make sure that string is actually copied }
-    gDebugDataHandler.FDispatchedEventStrings[gDebugDataHandler.
-      FNumDispatchedEvents-1] := aMessage;
+    { DONE: Make sure that string is actually copied }
+    gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
+      FDispatchedEventsHead].EventMessageString := StrAlloc(StrLen(
+      aDispatchedEvent.EventMessageString)+1);
+    StrCopy(gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
+      FDispatchedEventsHead].EventMessageString, aDispatchedEvent.
+      EventMessageString);
   end;
 
+  gDebugDataHandler.FDispatchedEventsHead :=
+    (gDebugDataHandler.FDispatchedEventsHead + 1) mod EVENT_QUEUE_SIZE;
   LeaveCriticalSection(gEventDispatchCriticalSection);
 end;
 

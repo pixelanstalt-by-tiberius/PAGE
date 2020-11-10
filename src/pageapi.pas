@@ -31,18 +31,17 @@ type
   TPAGE_SubSystems = set of TPAGE_SubSystem;
   TPAGE_EventMessage = (emString, emDummy);
 
-  { TODO: Maybe integrate message string in record }
+  { DONE: Maybe integrate message string in record }
   TPAGE_Event = record
     EventType: TPAGE_EventType;
     EventTick: UInt64;
     EventSenderSubsystem: TPAGE_SubSystem;
     EventReceiverSubsystem: TPAGE_SubSystem;
     EventMessage: TPAGE_EventMessage; // ggf. Word -> Array mit Strings verweisen
-    EventMessageString: Word;
+    EventMessageString: PChar;
   end;
 
-  TPAGE_EventQueueListener = procedure(aDispatchedEvent: TPAGE_Event;
-    aMessage: PChar);
+  TPAGE_EventQueueListener = procedure(aDispatchedEvent: TPAGE_Event);
   PPAGE_EventQueueListener = ^TPAGE_EventQueueListener;
 
 // Methods

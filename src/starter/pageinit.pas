@@ -48,6 +48,8 @@ type
       GetRendererInfo write SetRendererInfo;
 
     function AddRendererInfo: Integer;
+    procedure AddRendererInfos(Infos: TPAGE_RendererInfos);
+
     procedure DoPopulateRendererInfoCombobox;
   end;
 
@@ -93,6 +95,12 @@ function TfrmPageInit.AddRendererInfo: Integer;
 begin
   SetLength(FRendererInfos, Length(FRendererInfos)+1);
   Result := High(FRendererInfos);
+end;
+
+procedure TfrmPageInit.AddRendererInfos(Infos: TPAGE_RendererInfos);
+begin
+  SetLength(FRendererInfos, Length(Infos));
+  Move(Infos[0], FRendererInfos[0], Length(Infos)*SizeOf(TPAGE_RendererInfo));
 end;
 
 procedure TfrmPageInit.DoPopulateRendererInfoCombobox;

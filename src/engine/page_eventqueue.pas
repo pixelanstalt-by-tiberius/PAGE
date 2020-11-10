@@ -20,18 +20,18 @@ type
     procedure Execute; override;
   end; }
 
-
+  TPAGE_EventQueueListenerDefinition = record
+    ListenerMethod: TPAGE_EventQueueListener;
+    ListenerDirection: TPAGE_SubSystems;
+  end;
 
   { TPAGE_EventQueue }
 
   TPAGE_EventQueue = class
   protected
     FEvents: array[0..MAX_EVENTS] of TPAGE_Event;
-    FEventStrings: array[0..MAX_EVENTS] of PChar;
     FNumEvents: Integer;
-    // Maybe a better name would be FListenerCallbacks
-    FListenersEvents: array of TPAGE_EventQueueListener;
-    FListenersDirection: array of TPAGE_SubSystems;
+    FListeners: array of TPAGE_EventQueueListenerDefinition;
 
     FEventCriticalSection: TRTLCriticalSection;
   public
@@ -41,8 +41,6 @@ type
     procedure CastEvent(aEvent: TPAGE_Event; aString: PChar = ''); overload;
     procedure CastEventString(aEventType: TPAGE_EventType;
       FromSubSystem, ToSubSystem: TPAGE_SubSystem; theString: PChar); overload;
-
-    function GetEventString(Number: Word): PChar;
 
     procedure AddEventListener(aEventListener: TPAGE_EventQueueListener;
       ListenToSubSystems: TPAGE_SubSystems);
@@ -70,24 +68,25 @@ end;
 
 destructor TPAGE_EventQueue.Destroy;
 begin
-  SetLength(FListenersEvents, 0);
-  SetLength(FListenersDirection, 0);
+  SetLength(FListeners, 0);
   DoneCriticalSection(FEventCriticalSection);
 end;
 
 procedure TPAGE_EventQueue.CastEvent(aEvent: TPAGE_Event; aString: PChar = '');
 begin
   EnterCriticalSection(FEventCriticalSection);
-  if FNumEvents < MAX_EVENTS then
-    Inc(FNumEvents);
-  { TODO: Exception }
+  if FNumEvents = MAX_EVENTS then
+    Exception.Create('Event queue overflow');
+
+  Inc(FNumEvents);
+
   FEvents[FNumEvents-1] := aEvent;
   FEvents[FNumEvents-1].EventTick := SDL_GetTicks;
   if Length(aString) <> 0 then
   begin
-    StrDispose(FEventStrings[FNumEvents-1]);
-    FEventStrings[FNumEvents-1] := StrAlloc(StrLen(aString)+1);
-    StrCopy(FEventStrings[FNumEvents-1], aString);
+    StrDispose(FEvents[FNumEvents-1].EventMessageString);
+    FEvents[FNumEvents-1].EventMessageString := StrAlloc(StrLen(aString)+1);
+    StrCopy(FEvents[FNumEvents-1].EventMessageString, aString);
   end;
   LeaveCriticalSection(FEventCriticalSection);
 end;
@@ -107,40 +106,34 @@ begin
   CastEvent(theEvent, theString);
 end;
 
-function TPAGE_EventQueue.GetEventString(Number: Word): PChar;
-begin
-  Result := FEventStrings[Number];
-end;
-
-
+{ THIS METHOD IS NOT THREAD-SAFE! }
 procedure TPAGE_EventQueue.AddEventListener(
   aEventListener: TPAGE_EventQueueListener; ListenToSubSystems: TPAGE_SubSystems
   );
 begin
   { TODO: Maybe make thread safe ?? }
+  SetLength(FListeners, Length(FListeners)+1);
 
-  SetLength(FListenersEvents, Length(FListenersEvents)+1);
-  SetLength(FListenersDirection, Length(FListenersEvents));
-
-  { TODO: Maybe put a FNumListeners here to be more performant }
-  { TODO: Maybe join ListenersEvents and Directions in one record }
-  FListenersEvents[High(FListenersEvents)] := aEventListener;
-  FListenersDirection[High(FListenersEvents)] := ListenToSubSystems;
+  { DONE: Maybe join ListenersEvents and Directions in one record }
+  with FListeners[High(FListeners)] do
+  begin
+    ListenerMethod := aEventListener;
+    ListenerDirection := ListenToSubSystems;
+  end;
 end;
 
 procedure TPAGE_EventQueue.DoDispatchEvents;
 var
-  intEventLoop, intListenerEventsLoop: Integer;
+  intEventLoop, intListenersLoop: Integer;
 begin
   EnterCriticalSection(FEventCriticalSection);
   for intEventLoop := 0 to FNumEvents-1 do
-    for intListenerEventsLoop := 0 to High(FListenersEvents) do
-      if (psDebug in FListenersDirection[intListenerEventsLoop]) or
+    for intListenersLoop := 0 to High(FListeners) do
+      if (psDebug in FListeners[intListenersLoop].ListenerDirection) or
         (FEvents[intEventLoop].EventReceiverSubsystem in
-         FListenersDirection[intListenerEventsLoop]) then
+         FListeners[intListenersLoop].ListenerDirection) then
       begin
-        FListenersEvents[intListenerEventsLoop](FEvents[intEventLoop],
-          FEventStrings[intEventLoop]);
+        FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
       end;
   FNumEvents := 0;
   LeaveCriticalSection(FEventCriticalSection);

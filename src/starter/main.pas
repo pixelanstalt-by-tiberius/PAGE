@@ -228,12 +228,7 @@ begin
     // GetRendererInfos and populate combobox
     FPAGEMethods.PAGEGetRendererInfos(@RendererInfos);
     frmPageInit.cbRenderer.Clear;
-    { TODO: Make more pretty }
-    for intLoop := 0 to High(RendererInfos) do
-    begin
-      frmPageInit.RendererInfos[frmPageInit.AddRendererInfo] :=
-        RendererInfos[intLoop];
-    end;
+    frmPageInit.AddRendererInfos(RendererInfos);
     frmPageInit.DoPopulateRendererInfoCombobox;
 
 
@@ -313,7 +308,7 @@ end;
 
 procedure TfrmMain.DoSetGUIPageBoundUnbound(isPageBound: Boolean);
 begin
-  { TODO: If PAGE is initialized and then unbound, controls for game loop must
+  { DONE: If PAGE is initialized and then unbound, controls for game loop must
           be disabled }
   if isPageBound then
   begin
