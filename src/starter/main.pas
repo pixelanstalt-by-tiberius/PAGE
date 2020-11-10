@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
-  PAGEAPI;
+  PAGEAPI, APIHelper;
 
 //{$include ../PAGEAPI.inc}
 {$include ../PAGEconst.inc}
@@ -16,24 +16,24 @@ type
 
   { TPAGE_Methods }
 
-  TPAGE_Methods = record
+  { TPAGE_Methods = record
     PAGEInitialize: TPAGE_Initialize;
     PAGEFinalize: TPAGE_Finalize;
     PAGEBindToApp: TPAGE_BindToApp;
     PAGEGetRendererInfos: TPAGE_GetRendererInfos;
     PAGEEnterGameLoop: TPAGE_EnterGameLoop;
     PAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
-  end;
+  end; }
 
   { TPAGEContextThread }
 
   TPAGEContextThread = class(TThread)
   private
-    FPageMethods: TPAGE_Methods;
+    FptrPAGEAPI: PPAGE_APIHelper;
   protected
     procedure Execute; override;
   public
-    property PageMethods: TPAGE_Methods read FPageMethods write FPageMethods;
+    property APIHelper: PPAGE_APIHelper read FptrPAGEAPI write FptrPAGEAPI;
   end;
 
   { TfrmMain }
@@ -77,13 +77,15 @@ type
     procedure btnPageInitializeFinalizeClick(Sender: TObject);
     procedure btnSelectROMClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure rbVRAMUseCustomSizeChange(Sender: TObject);
     procedure rbWRAMUseCustomSizeChange(Sender: TObject);
   private
     FboolIsPageBound, FboolIsPageInitialized: Boolean;
     hPage: TLibHandle;
-    FPageMethods: TPAGE_Methods;
+    //FPageMethods: TPAGE_Methods;
+    FPAGEAPI: TPAGE_APIHelper;
     FDesiredWRAMSize: Integer;
     FDesiredVRAMSize: Integer;
 
@@ -118,13 +120,14 @@ implementation
 
 procedure TPAGEContextThread.Execute;
 begin
-  FPageMethods.PAGEEnterGameLoop;
+  FptrPAGEAPI^.PAGEEnterGameLoop();
 end;
 
 { TfrmMain }
 
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
+  FPAGEAPI := TPAGE_APIHelper.Create;
   FboolIsPageBound := False;
   FboolIsPageInitialized := False;
   FDesiredVRAMSize := 612*KB;
@@ -139,6 +142,11 @@ begin
   hPage := NilHandle;
   OpenRomDialog.Filter := OpenRomDialog.Filter + '|' +
     Format('Shared Library (*.%0:s)|*.%0:s', [SharedSuffix]);
+end;
+
+procedure TfrmMain.FormDestroy(Sender: TObject);
+begin
+  FPAGEAPI.Free;
 end;
 
 procedure TfrmMain.FormShow(Sender: TObject);
@@ -175,7 +183,7 @@ begin
             initialize }
     if (FboolIsPageBound) then //and (FboolIsPageInitialized) then
     begin
-      if not FPAGEMethods.PAGEBindToApp(FptrWRAM, FptrVRAM, nil, 2*MB, 612*KB,
+      if not FPAGEAPI.PAGEBindToApp(FptrWRAM, FptrVRAM, nil, 2*MB, 612*KB,
         0) then
       begin
         gDebugDataHandler.ErrorInfoText(Self, 'Failed to bind PAGE. ' +
@@ -204,7 +212,7 @@ procedure TfrmMain.btnGameLoopRunClick(Sender: TObject);
 begin
   FPAGEThread := TPAGEContextThread.Create(True);
   FPAGEThread.FreeOnTerminate := True;
-  FPAGEThread.PageMethods := FPageMethods;
+  FPAGEThread.APIHelper := @FPAGEAPI;
   TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := False;
   FPAGEThread.Start;
 end;
@@ -226,7 +234,7 @@ begin
   else
   begin
     // GetRendererInfos and populate combobox
-    FPAGEMethods.PAGEGetRendererInfos(@RendererInfos);
+    FPAGEAPI.PAGEGetRendererInfos(@RendererInfos);
     frmPageInit.cbRenderer.Clear;
     frmPageInit.AddRendererInfos(RendererInfos);
     frmPageInit.DoPopulateRendererInfoCombobox;
@@ -235,7 +243,7 @@ begin
     if frmPageInit.ShowModal = mrOk then
       with frmPageInit do
       begin
-        FboolIsPageInitialized := FPageMethods.PAGEInitialize(
+        FboolIsPageInitialized := FPAGEAPI.PAGEInitialize(
           cbRenderer.ItemIndex, rbSetRenderAccelerated.Checked,
           cbSetVSync.Checked, rbWindowsizeFullscreen.Checked, Left+Width, Top,
           sedtWindowWidth.Value, sedtWindowHeight.Value);
@@ -274,7 +282,7 @@ begin
   begin
     { TODO: Encapsulate methods in class and enumarate method pointer and
             names in array(s) }
-    FPAGEMethods.PAGEInitialize := TPAGE_Initialize(GetProcAddress(hPage,
+    {FPAGEMethods.PAGEInitialize := TPAGE_Initialize(GetProcAddress(hPage,
       PAGE_INITIALIZE_METHODNAME));
     FPAGEMethods.PAGEFinalize := TPAGE_Finalize(GetProcAddress(hPage,
       PAGE_FINALIZE_METHODNAME));
@@ -285,24 +293,16 @@ begin
     FPAGEMethods.PAGEEnterGameLoop := TPAGE_EnterGameLoop(GetProcAddress(
       hPage, PAGE_ENTERGAMELOOP_METHODNAME));
     FPAGEMethods.PAGEAddEventQueueListener := TPAGE_AddEventQueueListener(
-      GetProcAddress(hPage, PAGE_ADDEVENTQUEUELISTENER_METHODNAME));
+      GetProcAddress(hPage, PAGE_ADDEVENTQUEUELISTENER_METHODNAME));}
+    FPAGEAPI.GetMethodPointersFromLibrary(hPage);
 
     gDebugDataHandler.DebugInfoText(Self, '(DoBindPage) Method handles: ' +
-      Format('$%x $%x $%x $%x $%x $%x', [PtrUInt(FPAGEMethods.PAGEInitialize),
-      PtrUInt(FPAGEMethods.PAGEFinalize), PtrUInt(FPAGEMethods.
-      PAGEBindToApp), PtrUInt(FPAGEMethods.PAGEGetRendererInfos),
-      PtrUInt(FPAGEMethods.PAGEEnterGameLoop),
-      PtrUInt(FPAGEMethods.PAGEAddEventQueueListener)]));
+      FPAGEAPI.ReturnAddressesAsString);
 
-    Result := (FPAGEMethods.PAGEInitialize <> nil) and
-      (FPAGEMethods.PAGEFinalize <> nil) and
-      (FPAGEMethods.PAGEBindToApp <> nil) and
-      (FPAGEMethods.PAGEGetRendererInfos <> nil) and
-      (FPAGEMethods.PAGEEnterGameLoop <> nil) and
-      (FPAGEMethods.PAGEAddEventQueueListener <> nil);
+    Result := FPAGEAPI.isMethodPointerArrayValid;
 
     if Result then
-      FPAGEMethods.PAGEAddEventQueueListener(@EventQueueDispatch, [psDebug]);
+      FPAGEAPI.PAGEAddEventQueueListener(@EventQueueDispatch, [psDebug]);
   end;
 end;
 
@@ -350,13 +350,7 @@ end;
 
 procedure TfrmMain.DoNilPageMethodHandles;
 begin
-  with FPageMethods do
-  begin
-    PAGEInitialize := nil;
-    PAGEFinalize := nil;
-    PAGEBindToApp := nil;
-    PAGEGetRendererInfos := nil;
-  end;
+  FPAGEAPI.DoNilPointerArray;
 end;
 
 end.

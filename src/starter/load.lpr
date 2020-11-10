@@ -8,7 +8,8 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, main, pageinit, DebugConsole, DebugDataHandler, ConsoleComponent, PAGEAPI
+  Forms, main, pageinit, DebugConsole, DebugDataHandler, ConsoleComponent,
+  PAGEAPI, APIHelper
   { you can add units after this };
 
 {$R *.res}

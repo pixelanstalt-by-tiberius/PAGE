@@ -61,13 +61,19 @@ type
 
 
 const
-  PAGE_INITIALIZE_METHODNAME = 'PAGE_Do_Initialize';
+  PAGE_METHOD_NUM = 7;
+  PAGE_METHOD_NAMES: array[0..PAGE_METHOD_NUM-1] of String = ('PAGE_Do_Initialize',
+    'PAGE_Do_Finalize', 'PAGE_Do_BindToApp', 'PAGE_Do_GetRendererInfos',
+    'PAGE_Do_EnterGameLoop', 'PAGE_Do_Splashscreen',
+    'PAGE_Do_AddEventQueueListener');
+
+  {PAGE_INITIALIZE_METHODNAME = 'PAGE_Do_Initialize';
   PAGE_FINALIZE_METHODNAME = 'PAGE_Do_Finalize';
   PAGE_BINDTOAPP_METHODNAME = 'PAGE_Do_BindToApp';
   PAGE_GETRENDERERINFOS_METHODNAME = 'PAGE_Do_GetRendererInfos';
   PAGE_ENTERGAMELOOP_METHODNAME = 'PAGE_Do_EnterGameLoop';
   PAGE_SPLASHSCREEN_METHODNAME = 'PAGE_Do_Splashscreen';
-  PAGE_ADDEVENTQUEUELISTENER_METHODNAME = 'PAGE_Do_AddEventQueueListener';
+  PAGE_ADDEVENTQUEUELISTENER_METHODNAME = 'PAGE_Do_AddEventQueueListener';}
 
 implementation
 
