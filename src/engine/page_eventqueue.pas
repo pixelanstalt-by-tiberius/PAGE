@@ -11,15 +11,6 @@ const
   MAX_EVENTS = High(Word);
 
 type
-  //TPAGE_EventQueue = class;
-
-  { TPAGE_EventQueueThread = class(TThread)
-  protected
-    FEventQueue: TPAGE_EventQueue;
-  public
-    procedure Execute; override;
-  end; }
-
   TPAGE_EventQueueListenerDefinition = record
     ListenerMethod: TPAGE_EventQueueListener;
     ListenerDirection: TPAGE_SubSystems;

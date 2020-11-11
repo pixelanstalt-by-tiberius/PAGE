@@ -9,22 +9,9 @@ uses
   Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
   PAGEAPI, APIHelper;
 
-//{$include ../PAGEAPI.inc}
 {$include ../PAGEconst.inc}
 
 type
-
-  { TPAGE_Methods }
-
-  { TPAGE_Methods = record
-    PAGEInitialize: TPAGE_Initialize;
-    PAGEFinalize: TPAGE_Finalize;
-    PAGEBindToApp: TPAGE_BindToApp;
-    PAGEGetRendererInfos: TPAGE_GetRendererInfos;
-    PAGEEnterGameLoop: TPAGE_EnterGameLoop;
-    PAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
-  end; }
-
   { TPAGEContextThread }
 
   TPAGEContextThread = class(TThread)

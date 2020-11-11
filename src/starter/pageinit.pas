@@ -8,8 +8,6 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
   ExtCtrls, Spin, PAGEAPI;
 
-//{$include ../PAGEAPI.inc}
-
 type
 
   { TfrmPageInit }
