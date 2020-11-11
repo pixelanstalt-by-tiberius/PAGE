@@ -100,9 +100,11 @@ end;
 function PAGE_Do_Splashscreen(overrideDelta: Double = -1): Boolean;
 var
   textureLogo1, textureLogo2: PSDL_Texture;
-  alpha1, alpha2, alpha3: Double;
+  alpha: Double;
   perfCountFreq, perfCountLast, perfCountCurrent: UInt64;
   delta: Double;
+  intState: Integer = 0;
+  intTick: UInt64;
 begin
   { TODO: Load from resource (assetfile or integrated in so/dll }
   { TODO: No hardcoded filenames! }
@@ -120,61 +122,68 @@ begin
   SDL_SetRenderDrawColor(TPAGE_WRAMLayout(WRAM^).SDLRenderer, 0, 0, 0, 0);
   SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
 
-  alpha1 := 0;
-  alpha2 := 0;
-  alpha3 := 255;
+  alpha := 0;
+  intTick := 0;
 
   while (boolShowSplashscreen) do
   begin
     perfCountCurrent := SDL_GetPerformanceCounter;
     delta := (perfCountCurrent - perfCountLast)/(perfCountFreq/10);
-
     SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-    if alpha1 < 255 then
-    begin
-      SDL_SetTextureAlphaMod(textureLogo1, Round(alpha1));
-      alpha1 := alpha1+(delta*25);
-      if alpha1 > 255 then
-        alpha1 := 255;
+
+    case intState of
+      0: begin
+           // Transition from black to logo only
+           SDL_SetTextureAlphaMod(textureLogo1, Round(alpha));
+           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
+             nil, nil);
+           alpha := alpha+(delta*25);
+           if alpha > 255 then
+           begin
+             alpha := 0;
+             intState := 1;
+           end;
+         end;
+      1: begin
+           // Transition form logo only to logo with text
+           SDL_SetTextureAlphaMod(textureLogo1, 255);
+           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
+           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
+             nil, nil);
+           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
+             nil, nil);
+
+           if (alpha < 255) then
+             alpha := alpha+(delta*25);
+
+           if (alpha > 255) then
+           begin
+             alpha := 255;
+             intTick := SDL_GetTicks;
+           end;
+           if (intTick <> 0) and (SDL_GetTicks - intTick >= 2000) then
+             intState := 2;
+         end;
+      2: begin
+           // Transition from logo with text to black
+           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
+           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
+             nil, nil);
+           alpha := alpha-(delta*25);
+           if alpha <= 0 then
+           begin
+             alpha := 0;
+             intState := 3;
+           end;
+         end;
+      3: begin
+           SDL_Delay(1000);
+           boolShowSplashscreen := False;
+         end;
     end;
-
-    if (alpha1 >= 255) and (alpha2 <= 255) then
-    begin
-      SDL_SetTextureAlphaMod(textureLogo2, Round(alpha2));
-      alpha2 := alpha2+(delta*25);
-      if alpha2 > 255 then
-        alpha2 := 255;
-    end;
-
-    if (alpha1 >= 255) and (alpha2 >= 255) then
-    begin
-      SDL_SetTextureAlphaMod(textureLogo1, 0);
-      SDL_SetTextureAlphaMod(textureLogo2, Round(alpha3));
-      alpha3 := alpha3-(delta*25);
-      if alpha3 <= 0 then
-        alpha3 := 0;
-    end;
-
-    if alpha1 > 0 then
-      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1, nil,
-        nil);
-
-    if alpha2 > 0 then
-      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2, nil,
-        nil);
-
-    if alpha3 < 255 then
-      SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2, nil,
-        nil);
 
     perfCountLast := perfCountCurrent;
     SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-
-    if (alpha1 >= 255) and (alpha2 >= 255) and (alpha3 <= 0) then
-    begin
-      SDL_Delay(1000);
-      boolShowSplashscreen := False;
-    end;
   end;
 
   SDL_DestroyTexture(textureLogo1);
