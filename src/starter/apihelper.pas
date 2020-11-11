@@ -13,6 +13,8 @@ type
 
   TPAGE_APIHelper = class
   private
+    function GetMethodPointer(Index: Integer): Pointer;
+    function GetMethodPointerArrayLength: Integer;
     function GetPAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
     function GetPAGEBindToApp: TPAGE_BindToApp;
     function GetPAGEEnterGameLoop: TPAGE_EnterGameLoop;
@@ -41,6 +43,9 @@ type
     property PAGEAddEventQueueListener: TPAGE_AddEventQueueListener read
       GetPAGEAddEventQueueListener write SetPAGEAddEventQueueListener;
 
+    property MethodPointers[Index: Integer]: Pointer read GetMethodPointer;
+    property MethodPointerNum: Integer read GetMethodPointerArrayLength;
+
     procedure GetMethodPointersFromLibrary(hLibrary: TLibHandle);
     function isMethodPointerArrayValid: Boolean;
     procedure DoNilPointerArray;
@@ -51,6 +56,19 @@ type
 implementation
 
 { TPAGE_APIHelper }
+
+function TPAGE_APIHelper.GetMethodPointer(Index: Integer): Pointer;
+begin
+  if (Index < Low(FMethodPointers)) or (Index > High(FMethodPointers)) then
+    Exception.Create('Method pointer index out of range');
+
+  Result := FMethodPointers[Index];
+end;
+
+function TPAGE_APIHelper.GetMethodPointerArrayLength: Integer;
+begin
+  Result := Length(FMethodPointers);
+end;
 
 function TPAGE_APIHelper.GetPAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
 begin

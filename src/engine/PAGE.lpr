@@ -3,7 +3,7 @@ library PAGE;
 {$mode objfpc}{$H+}
 
 uses
-  {$ifdef UNIX} cthreads,{$endif}
+  //{$ifdef UNIX} cthreads,{$endif}
   Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils;
 
 var
