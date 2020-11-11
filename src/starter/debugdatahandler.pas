@@ -31,7 +31,6 @@ type
     procedure SetOnNewData(AValue: TNotifyEvent);
   protected
     FOnNewData: TNotifyEvent;
-    { DONE: Modify to constant }
     FDispatchedEvents: array[0..EVENT_QUEUE_SIZE-1] of TPAGE_Event;
     FDispatchedEventsHead, FDispatchedEventsTail: Integer;
 
@@ -92,7 +91,6 @@ end;
 procedure TDebugDataHandler.AddInfo(ASenderName, AText: String;
   ASeverity: TInfoSeverity);
 begin
-  // DONE: Reserve enough space and save current pointer
   if (FInfoHead = -1) or (FInfoHead+1 > Length(FInfos)) then
     SetLength(FInfos, Length(FInfos)+INFO_INCREASE_AMOUNT);
 
@@ -189,8 +187,6 @@ begin
           FDispatchedEvents[intLoop].EventTick]), isDebug);
   end;
 
-
-  { DONE: Implement rolling buffer }
   EnterCriticalSection(gEventDispatchCriticalSection);
   FDispatchedEventsTail := EventHead;
   LeaveCriticalSection(gEventDispatchCriticalSection);
@@ -209,15 +205,10 @@ begin
   gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
     FDispatchedEventsHead] := aDispatchedEvent;
 
-
   if (aDispatchedEvent.EventMessage = emString) then
   begin
-    { DONE: Make sure that string is actually copied }
     gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
-      FDispatchedEventsHead].EventMessageString := StrAlloc(StrLen(
-      aDispatchedEvent.EventMessageString)+1);
-    StrCopy(gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
-      FDispatchedEventsHead].EventMessageString, aDispatchedEvent.
+      FDispatchedEventsHead].EventMessageString := StrNew(aDispatchedEvent.
       EventMessageString);
   end;
 

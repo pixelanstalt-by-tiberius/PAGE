@@ -4,7 +4,7 @@ library PAGE;
 
 uses
   {$ifdef UNIX} cthreads,{$endif}
-  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue;
+  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils;
 
 var
   WRAM, VRAM, ROM: Pointer;
@@ -104,7 +104,8 @@ var
   perfCountFreq, perfCountLast, perfCountCurrent: UInt64;
   delta: Double;
   intState: Integer = 0;
-  intTick: UInt64;
+  intTick, intStateChange: UInt64;
+  pchMessage: PChar;
 begin
   { TODO: Load from resource (assetfile or integrated in so/dll }
   { TODO: No hardcoded filenames! }
@@ -124,6 +125,7 @@ begin
 
   alpha := 0;
   intTick := 0;
+  intStateChange := 0;
 
   while (boolShowSplashscreen) do
   begin
@@ -133,6 +135,10 @@ begin
 
     case intState of
       0: begin
+           { TODO: Debug only - strip! }
+           if intStateChange = 0 then
+             intStateChange := SDL_GetTicks;
+
            // Transition from black to logo only
            SDL_SetTextureAlphaMod(textureLogo1, Round(alpha));
            SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
@@ -142,9 +148,23 @@ begin
            begin
              alpha := 0;
              intState := 1;
+
+             { TODO: Debug only - strip! }
+             //pchMessage :=
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('State 0->1 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
+             intStateChange := 0;
            end;
          end;
       1: begin
+
+           { TODO: Debug only - strip! }
+           if intStateChange = 0 then
+           begin
+             intStateChange := SDL_GetTicks;
+           end;
            // Transition form logo only to logo with text
            SDL_SetTextureAlphaMod(textureLogo1, 255);
            SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
@@ -162,9 +182,20 @@ begin
              intTick := SDL_GetTicks;
            end;
            if (intTick <> 0) and (SDL_GetTicks - intTick >= 2000) then
+           begin
              intState := 2;
+             { TODO: Debug only - strip! }
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('State 1->2 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
+             intStateChange := 0;
+           end;
          end;
       2: begin
+           { TODO: Debug only - strip! }
+           if intStateChange = 0 then
+             intStateChange := SDL_GetTicks;
            // Transition from logo with text to black
            SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
            SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
@@ -174,16 +205,30 @@ begin
            begin
              alpha := 0;
              intState := 3;
+             { TODO: Debug only - strip! }
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('State 2->3 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
+             intStateChange := 0;
            end;
          end;
       3: begin
+           { TODO: Debug only - strip! }
+           if intStateChange = 0 then
+             intStateChange := SDL_GetTicks;
            SDL_Delay(1000);
            boolShowSplashscreen := False;
+           { TODO: Debug only - strip! }
+           gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             PChar('State 3 done (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+           intStateChange := 0;
          end;
     end;
 
     perfCountLast := perfCountCurrent;
     SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    gEventQueue.DoDispatchEvents;
   end;
 
   SDL_DestroyTexture(textureLogo1);
@@ -195,6 +240,8 @@ end;
 function PAGE_Do_EnterGameLoop(overrideDelta: Double = -1): Boolean;
 begin
   PAGE_Do_Splashscreen;
+  gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    'Entering game loop');
   while not (TPAGE_WRAMLayout(WRAM^).boolExitGameLoop) do
   begin
     // Check input
@@ -210,6 +257,9 @@ begin
     // wait?
     gEventQueue.DoDispatchEvents;
   end;
+  gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    'Exit game loop');
+  gEventQueue.DoDispatchEvents;
 end;
 
 function PAGE_Do_AddEventQueueListener(aEventListener: TPAGE_EventQueueListener;

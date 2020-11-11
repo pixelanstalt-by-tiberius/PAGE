@@ -84,7 +84,6 @@ type
   private
     FboolIsPageBound, FboolIsPageInitialized: Boolean;
     hPage: TLibHandle;
-    //FPageMethods: TPAGE_Methods;
     FPAGEAPI: TPAGE_APIHelper;
     FDesiredWRAMSize: Integer;
     FDesiredVRAMSize: Integer;
@@ -92,15 +91,14 @@ type
     FptrWRAM, FptrVRAM, FptrROM: Pointer;
 
     FPAGEThread: TPAGEContextThread;
+    FboolPageThreadHasTerminated: Boolean;
 
     function DoBindPageMethods(PageFileName: String = ''): Boolean;
 
     procedure DoSetGUIPageBoundUnbound(isPageBound: Boolean);
     procedure DoSetGUIPageInitializeFinalize(isPageInitialized: Boolean);
     procedure DoNilPageMethodHandles;
-    {function DoUnbindPage: Boolean;
-    function DoInitializePage: Boolean;
-    function DoFinalizePage: Boolean; }
+    procedure PageThreadTerminate(Sender: TObject);
   public
 
   end;
@@ -179,8 +177,6 @@ begin
       until (not boolLibOpenDialogExecuted) or (FboolIsPageBound);
     end;
 
-    { DONE: Overthink if memory allocation should be placed in PAGE or in
-            initialize }
     if (FboolIsPageBound) then //and (FboolIsPageInitialized) then
     begin
       if not FPAGEAPI.PAGEBindToApp(FptrWRAM, FptrVRAM, nil, 2*MB, 612*KB,
@@ -195,10 +191,11 @@ begin
   begin
     if UnloadLibrary(hPage) then
     begin
+      if Assigned(FPAGEThread) then
+        FreeAndNil(FPAGEThread);
       hPage := NilHandle;
       FboolIsPageBound := False;
       DoNilPageMethodHandles;
-      FPAGEThread.Free;
       gDebugDataHandler.DebugInfoText(Self, 'Unloaded library');
     end
     else
@@ -210,11 +207,20 @@ end;
 
 procedure TfrmMain.btnGameLoopRunClick(Sender: TObject);
 begin
-  FPAGEThread := TPAGEContextThread.Create(True);
-  FPAGEThread.FreeOnTerminate := True;
-  FPAGEThread.APIHelper := @FPAGEAPI;
-  TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := False;
-  FPAGEThread.Start;
+  if (Assigned(FPAGEThread)) and (FboolPageThreadHasTerminated) then
+  begin
+    FreeAndNil(FPAGEThread);
+  end;
+
+  if not Assigned(FPAGEThread) then
+  begin
+    FboolPageThreadHasTerminated := False;
+    FPAGEThread := TPAGEContextThread.Create(True);
+    FPAGEThread.OnTerminate := @PageThreadTerminate;
+    FPAGEThread.APIHelper := @FPAGEAPI;
+    TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := False;
+    FPAGEThread.Start;
+  end;
 end;
 
 procedure TfrmMain.btnGameLoopPauseClick(Sender: TObject);
@@ -225,7 +231,6 @@ end;
 procedure TfrmMain.btnPageInitializeFinalizeClick(Sender: TObject);
 var
   RendererInfos: TPAGE_RendererInfos;
-  intLoop: Integer;
 begin
   if FboolIsPageInitialized then
   begin
@@ -280,20 +285,6 @@ begin
     IntToHex(hPage, 8));
   if hPage <> NilHandle then
   begin
-    { TODO: Encapsulate methods in class and enumarate method pointer and
-            names in array(s) }
-    {FPAGEMethods.PAGEInitialize := TPAGE_Initialize(GetProcAddress(hPage,
-      PAGE_INITIALIZE_METHODNAME));
-    FPAGEMethods.PAGEFinalize := TPAGE_Finalize(GetProcAddress(hPage,
-      PAGE_FINALIZE_METHODNAME));
-    FPAGEMethods.PAGEBindToApp := TPAGE_BindToApp(GetProcAddress(hPage,
-      PAGE_BINDTOAPP_METHODNAME));
-    FPAGEMethods.PAGEGetRendererInfos := TPAGE_GetRendererInfos(GetProcAddress(
-      hPage, PAGE_GETRENDERERINFOS_METHODNAME));
-    FPAGEMethods.PAGEEnterGameLoop := TPAGE_EnterGameLoop(GetProcAddress(
-      hPage, PAGE_ENTERGAMELOOP_METHODNAME));
-    FPAGEMethods.PAGEAddEventQueueListener := TPAGE_AddEventQueueListener(
-      GetProcAddress(hPage, PAGE_ADDEVENTQUEUELISTENER_METHODNAME));}
     FPAGEAPI.GetMethodPointersFromLibrary(hPage);
 
     gDebugDataHandler.DebugInfoText(Self, '(DoBindPage) Method handles: ' +
@@ -308,8 +299,6 @@ end;
 
 procedure TfrmMain.DoSetGUIPageBoundUnbound(isPageBound: Boolean);
 begin
-  { DONE: If PAGE is initialized and then unbound, controls for game loop must
-          be disabled }
   if isPageBound then
   begin
     btnPageBindUnbind.Caption := 'Unbind';
@@ -351,6 +340,12 @@ end;
 procedure TfrmMain.DoNilPageMethodHandles;
 begin
   FPAGEAPI.DoNilPointerArray;
+end;
+
+procedure TfrmMain.PageThreadTerminate(Sender: TObject);
+begin
+  FboolPageThreadHasTerminated := True;
+  gDebugDataHandler.DebugInfoText(Self, '(PAGEThread) Thread terminated');
 end;
 
 end.

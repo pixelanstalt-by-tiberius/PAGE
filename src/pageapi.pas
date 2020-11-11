@@ -29,15 +29,14 @@ type
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
     psROM);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
-  TPAGE_EventMessage = (emString, emDummy);
+  TPAGE_EventMessage = (emEmpty, emString);
 
-  { DONE: Maybe integrate message string in record }
   TPAGE_Event = record
     EventType: TPAGE_EventType;
     EventTick: UInt64;
     EventSenderSubsystem: TPAGE_SubSystem;
     EventReceiverSubsystem: TPAGE_SubSystem;
-    EventMessage: TPAGE_EventMessage; // ggf. Word -> Array mit Strings verweisen
+    EventMessage: TPAGE_EventMessage;
     EventMessageString: PChar;
   end;
 
@@ -66,14 +65,6 @@ const
     'PAGE_Do_Finalize', 'PAGE_Do_BindToApp', 'PAGE_Do_GetRendererInfos',
     'PAGE_Do_EnterGameLoop', 'PAGE_Do_Splashscreen',
     'PAGE_Do_AddEventQueueListener');
-
-  {PAGE_INITIALIZE_METHODNAME = 'PAGE_Do_Initialize';
-  PAGE_FINALIZE_METHODNAME = 'PAGE_Do_Finalize';
-  PAGE_BINDTOAPP_METHODNAME = 'PAGE_Do_BindToApp';
-  PAGE_GETRENDERERINFOS_METHODNAME = 'PAGE_Do_GetRendererInfos';
-  PAGE_ENTERGAMELOOP_METHODNAME = 'PAGE_Do_EnterGameLoop';
-  PAGE_SPLASHSCREEN_METHODNAME = 'PAGE_Do_Splashscreen';
-  PAGE_ADDEVENTQUEUELISTENER_METHODNAME = 'PAGE_Do_AddEventQueueListener';}
 
 implementation
 

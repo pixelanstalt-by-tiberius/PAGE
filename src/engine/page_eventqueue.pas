@@ -64,6 +64,7 @@ begin
     Exception.Create('Tried to initialize singleton EventQueue more than once');
   InitCriticalSection(FEventCriticalSection);
   FNumEvents := 0;
+  FillByte(FEvents[0], SizeOf(TPAGE_Event)*Length(FEvents), 0);
 end;
 
 destructor TPAGE_EventQueue.Destroy;
@@ -80,13 +81,18 @@ begin
 
   Inc(FNumEvents);
 
+  if FEvents[FNumEvents-1].EventMessage = emString then
+  begin
+    StrDispose(FEvents[FNumEvents-1].EventMessageString);
+  end;
+
   FEvents[FNumEvents-1] := aEvent;
   FEvents[FNumEvents-1].EventTick := SDL_GetTicks;
   if Length(aString) <> 0 then
   begin
-    StrDispose(FEvents[FNumEvents-1].EventMessageString);
-    FEvents[FNumEvents-1].EventMessageString := StrAlloc(StrLen(aString)+1);
-    StrCopy(FEvents[FNumEvents-1].EventMessageString, aString);
+    { FEvents[FNumEvents-1].EventMessageString := StrAlloc(StrLen(aString)+1);
+    StrCopy(FEvents[FNumEvents-1].EventMessageString, aString); }
+    FEvents[FNumEvents-1].EventMessageString := StrNew(aString);
   end;
   LeaveCriticalSection(FEventCriticalSection);
 end;
@@ -114,7 +120,6 @@ begin
   { TODO: Maybe make thread safe ?? }
   SetLength(FListeners, Length(FListeners)+1);
 
-  { DONE: Maybe join ListenersEvents and Directions in one record }
   with FListeners[High(FListeners)] do
   begin
     ListenerMethod := aEventListener;
