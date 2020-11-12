@@ -19,6 +19,23 @@ type
   TPAGE_RendererInfos = array of TPAGE_RendererInfo;
   PPAGE_RendererInfos = ^TPAGE_RendererInfos;
 
+  TPAGE_RenderSettings = record
+    RendererNumber: Integer;
+    RenderAccelerated: Boolean;
+    EnableVSync: Boolean;
+    RenderSizeWidth: Word;
+    RenderSizeHeight: Word;
+  end;
+
+  TPAGE_WindowSettings = record
+    Fullscreen: Boolean;
+    WindowSizeWidth: Word;
+    WindowSizeHeight: Word;
+    WindowX: Word;
+    WindowY: Word;
+    WindowTitle: PChar;
+  end;
+
   TPAGE_WRAMLayout = packed record
     SDLWindow: PSDL_Window;
     SDLRenderer: PSDL_Renderer;
@@ -45,9 +62,8 @@ type
 
 // Methods
 type
-  TPAGE_Initialize = function(RendererNum: Integer; Accelerated: Boolean;
-    EnableVSYNC: Boolean; Fullscreen: Boolean; X, Y, WinWidth,
-    WinHeight: Integer): Boolean;
+  TPAGE_Initialize = function(RenderSettings: TPAGE_RenderSettings;
+    WindowSettings: TPAGE_WindowSettings): Boolean;
   TPAGE_Finalize = function(): Boolean;
   TPAGE_BindToApp = function(WRAM, VRAM, ROM: Pointer; WRAMSize, VRAMSize,
     ROMSize: Integer): Boolean;

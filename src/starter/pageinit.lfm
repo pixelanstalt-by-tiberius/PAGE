@@ -1,19 +1,19 @@
 object frmPageInit: TfrmPageInit
   Left = 266
-  Height = 268
+  Height = 374
   Top = 227
-  Width = 420
+  Width = 424
   BorderStyle = bsToolWindow
   Caption = 'PaGE initialization options'
-  ClientHeight = 268
-  ClientWidth = 420
+  ClientHeight = 374
+  ClientWidth = 424
   Position = poMainFormCenter
   LCLVersion = '2.0.10.0'
   object pcPageInit: TPageControl
     Left = 4
-    Height = 223
+    Height = 329
     Top = 4
-    Width = 412
+    Width = 416
     ActivePage = tsRendering
     Align = alClient
     BorderSpacing.Around = 4
@@ -21,8 +21,8 @@ object frmPageInit: TfrmPageInit
     TabOrder = 0
     object tsRendering: TTabSheet
       Caption = 'Rendering'
-      ClientHeight = 193
-      ClientWidth = 402
+      ClientHeight = 299
+      ClientWidth = 406
       object lblRenderer: TLabel
         Left = 4
         Height = 14
@@ -116,27 +116,58 @@ object frmPageInit: TfrmPageInit
           TabStop = True
         end
       end
+      object gbRenderSize: TGroupBox
+        Left = 4
+        Height = 52
+        Top = 144
+        Width = 398
+        BorderSpacing.Around = 4
+        Caption = 'Rendersize'
+        ClientHeight = 35
+        ClientWidth = 396
+        TabOrder = 3
+        object sedtRenderWidth: TSpinEdit
+          Left = 4
+          Height = 27
+          Top = 4
+          Width = 86
+          MaxValue = 1280
+          MinValue = 100
+          TabOrder = 0
+          Value = 416
+        end
+        object sedtRenderHeight: TSpinEdit
+          Left = 104
+          Height = 27
+          Top = 4
+          Width = 86
+          MaxValue = 1280
+          MinValue = 100
+          TabOrder = 1
+          Value = 224
+        end
+      end
     end
     object tsDisplay: TTabSheet
       Caption = 'Display'
-      ClientHeight = 193
-      ClientWidth = 402
+      ClientHeight = 299
+      ClientWidth = 406
       object gbWindowSize: TGroupBox
         Left = 4
         Height = 76
         Top = 4
-        Width = 394
+        Width = 398
         Align = alTop
         BorderSpacing.Around = 4
         Caption = 'Windowsize'
         ClientHeight = 59
-        ClientWidth = 392
+        ClientWidth = 396
         TabOrder = 0
         object rbWindowsizeFullscreen: TRadioButton
           Left = 4
           Height = 23
           Top = 4
-          Width = 384
+          Width = 388
           Align = alTop
           BorderSpacing.Around = 4
           Caption = 'Fullscreen'
@@ -147,7 +178,7 @@ object frmPageInit: TfrmPageInit
           Left = 4
           Height = 23
           Top = 31
-          Width = 384
+          Width = 388
           Align = alTop
           BorderSpacing.Around = 4
           Caption = 'Fixed size'
@@ -163,7 +194,7 @@ object frmPageInit: TfrmPageInit
           MaxValue = 1280
           MinValue = 100
           TabOrder = 1
-          Value = 416
+          Value = 832
         end
         object sedtWindowHeight: TSpinEdit
           Left = 212
@@ -173,7 +204,7 @@ object frmPageInit: TfrmPageInit
           MaxValue = 1280
           MinValue = 100
           TabOrder = 3
-          Value = 224
+          Value = 448
         end
       end
     end
@@ -181,16 +212,16 @@ object frmPageInit: TfrmPageInit
   object pnlDialogButtons: TPanel
     Left = 4
     Height = 33
-    Top = 231
-    Width = 412
+    Top = 337
+    Width = 416
     Align = alBottom
     BorderSpacing.Around = 4
     BevelOuter = bvNone
     ClientHeight = 33
-    ClientWidth = 412
+    ClientWidth = 416
     TabOrder = 1
     object btnOk: TButton
-      Left = 333
+      Left = 337
       Height = 25
       Top = 4
       Width = 75
@@ -202,7 +233,7 @@ object frmPageInit: TfrmPageInit
       TabOrder = 0
     end
     object btnCancel: TButton
-      Left = 254
+      Left = 258
       Height = 25
       Top = 4
       Width = 75

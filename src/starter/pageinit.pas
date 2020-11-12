@@ -23,6 +23,7 @@ type
     gbRendererCapabilities: TGroupBox;
     gbRendererOptions: TGroupBox;
     gbWindowSize: TGroupBox;
+    gbRenderSize: TGroupBox;
     lblRenderer: TLabel;
     pcPageInit: TPageControl;
     pnlDialogButtons: TPanel;
@@ -30,8 +31,10 @@ type
     rbSetRenderSoftware: TRadioButton;
     rbWindowSizeFixed: TRadioButton;
     rbWindowsizeFullscreen: TRadioButton;
+    sedtRenderHeight: TSpinEdit;
     sedtWindowWidth: TSpinEdit;
     sedtWindowHeight: TSpinEdit;
+    sedtRenderWidth: TSpinEdit;
     tsDisplay: TTabSheet;
     tsRendering: TTabSheet;
     procedure cbRendererChange(Sender: TObject);

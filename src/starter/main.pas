@@ -218,6 +218,8 @@ end;
 procedure TfrmMain.btnPageInitializeFinalizeClick(Sender: TObject);
 var
   RendererInfos: TPAGE_RendererInfos;
+  RenderSettings: TPAGE_RenderSettings;
+  WindowSettings: TPAGE_WindowSettings;
 begin
   if FboolIsPageInitialized then
   begin
@@ -235,10 +237,22 @@ begin
     if frmPageInit.ShowModal = mrOk then
       with frmPageInit do
       begin
-        FboolIsPageInitialized := FPAGEAPI.PAGEInitialize(
-          cbRenderer.ItemIndex, rbSetRenderAccelerated.Checked,
-          cbSetVSync.Checked, rbWindowsizeFullscreen.Checked, Left+Width, Top,
-          sedtWindowWidth.Value, sedtWindowHeight.Value);
+        RenderSettings.RendererNumber := cbRenderer.ItemIndex;
+        RenderSettings.EnableVSync := cbSetVSync.Checked;
+        RenderSettings.RenderAccelerated := rbSetRenderAccelerated.Checked;
+        RenderSettings.RenderSizeHeight := sedtRenderHeight.Value;
+        RenderSettings.RenderSizeWidth := sedtRenderWidth.Value;
+
+        WindowSettings.Fullscreen := rbWindowsizeFullscreen.Checked;
+        WindowSettings.WindowSizeWidth := sedtWindowWidth.Value;
+        WindowSettings.WindowSizeHeight := sedtWindowHeight.Value;
+        WindowSettings.WindowX := frmMain.Left+frmMain.Width;
+        WindowSettings.WindowY := Top;
+        WindowSettings.WindowTitle := 'Pixelanstalt Game Engine';
+
+
+        FboolIsPageInitialized := FPAGEAPI.PAGEInitialize(RenderSettings,
+          WindowSettings);
         DoSetGUIPageInitializeFinalize(FboolIsPageInitialized);
       end;
   end;

@@ -12,9 +12,8 @@ var
 
   boolShowSplashScreen: Boolean = True;
 
-function PAGE_Do_Initialize(RendererNum: Integer; Accelerated: Boolean;
-    EnableVSYNC: Boolean; Fullscreen: Boolean; X, Y,
-    WinWidth, WinHeight: Integer): Boolean;
+function PAGE_Do_Initialize(RenderSettings: TPAGE_RenderSettings;
+  WindowSettings: TPAGE_WindowSettings): Boolean;
 var
   WindowFlags, RendererFlags: UInt32;
   nEvent: TPAGE_Event;
@@ -26,27 +25,29 @@ begin
   if Result then
   begin
     // Create Window
-    if Fullscreen then
+    if WindowSettings.Fullscreen then
       WindowFlags := SDL_WINDOW_FULLSCREEN
     else
       WindowFlags := SDL_WINDOW_SHOWN;
 
     TPAGE_WRAMLayout(WRAM^).SDLWindow :=
-      SDL_CreateWindow('PAGE demo', X, Y, WinWidth, WinHeight, WindowFlags);
+      SDL_CreateWindow(WindowSettings.WindowTitle, WindowSettings.WindowX,
+        WindowSettings.WindowY, WindowSettings.WindowSizeWidth,
+        WindowSettings.WindowSizeHeight, WindowFlags);
 
     // Create Renderer
     RendererFlags := 0;
-    if Accelerated then
+    if RenderSettings.RenderAccelerated then
       RendererFlags := SDL_RENDERER_ACCELERATED
     else
       RendererFlags := SDL_RENDERER_SOFTWARE;
 
-    if EnableVSYNC then
+    if RenderSettings.EnableVSync then
       RendererFlags := RendererFlags or SDL_RENDERER_PRESENTVSYNC;
 
     TPAGE_WRAMLayout(WRAM^).SDLRenderer :=
-      SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow, RendererNum,
-      RendererFlags);
+      SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow,
+      RenderSettings.RendererNumber, RendererFlags);
 
     SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
     SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
