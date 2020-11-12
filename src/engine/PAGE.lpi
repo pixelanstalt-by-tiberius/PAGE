@@ -30,7 +30,7 @@
         <PackageName Value="PascalSDL2Header"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="2">
+    <Units Count="3">
       <Unit0>
         <Filename Value="PAGE.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -40,6 +40,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="PAGE_EventQueue"/>
       </Unit1>
+      <Unit2>
+        <Filename Value="page_helpers.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

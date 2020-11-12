@@ -4,7 +4,7 @@ library PAGE;
 
 uses
   //{$ifdef UNIX} cthreads,{$endif}
-  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, unit1;
+  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers;
 
 var
   WRAM, VRAM, ROM: Pointer;
@@ -16,6 +16,7 @@ function PAGE_Do_Initialize(RenderSettings: TPAGE_RenderSettings;
   WindowSettings: TPAGE_WindowSettings): Boolean;
 var
   WindowFlags, RendererFlags: UInt32;
+  SDL_RendererInfo: TSDL_RendererInfo;
 begin
   Result := False;
 
@@ -43,6 +44,7 @@ begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug,
         PChar('Error creating window: ' + SDL_GetError));
       Result := False;
+      gEventQueue.DoDispatchEvents;
       Exit;
     end;
     // Create Renderer
@@ -55,6 +57,10 @@ begin
     if RenderSettings.EnableVSync then
       RendererFlags := RendererFlags or SDL_RENDERER_PRESENTVSYNC;
 
+    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      PChar('Creating renderer: ' +
+      PAGERenderSettingsToString(RenderSettings)));
+
     TPAGE_WRAMLayout(WRAM^).SDLRenderer :=
       SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow,
       RenderSettings.RendererNumber, RendererFlags);
@@ -63,12 +69,26 @@ begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug,
         PChar('Error creating renderer: ' + SDL_GetError));
       Result := False;
+      gEventQueue.DoDispatchEvents;
       Exit;
     end;
 
+    SDL_GetRendererInfo(TPAGE_WRAMLayout(WRAM^).SDLRenderer, @SDL_RendererInfo);
+    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      PChar('Renderer created: ' +
+      PAGERenderSettingsToString(SDLRendererInfoToPAGERenderSettings(
+      SDL_RendererInfo))));
+
+    if SDL_RenderSetLogicalSize(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+      RenderSettings.RenderSizeWidth, RenderSettings.RenderSizeHeight) <> 0 then
+    begin
+      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+        PChar('Failed to set logical render size: ' + SDL_GetError));
+    end;
     SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
     SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
   end;
+  gEventQueue.DoDispatchEvents;
 end;
 
 function PAGE_Do_Finalize: Boolean;
