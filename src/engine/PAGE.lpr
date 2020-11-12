@@ -4,7 +4,7 @@ library PAGE;
 
 uses
   //{$ifdef UNIX} cthreads,{$endif}
-  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils;
+  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, unit1;
 
 var
   WRAM, VRAM, ROM: Pointer;
@@ -16,13 +16,17 @@ function PAGE_Do_Initialize(RenderSettings: TPAGE_RenderSettings;
   WindowSettings: TPAGE_WindowSettings): Boolean;
 var
   WindowFlags, RendererFlags: UInt32;
-  nEvent: TPAGE_Event;
 begin
   Result := False;
 
   { TODO: Handle errors, warnings etc. }
   Result := SDL_Init(SDL_INIT_EVERYTHING) = 0;
-  if Result then
+  if not Result then
+  begin
+    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      PChar('Error initializing SDL: ' + SDL_GetError));
+  end
+  else
   begin
     // Create Window
     if WindowSettings.Fullscreen then
@@ -34,7 +38,13 @@ begin
       SDL_CreateWindow(WindowSettings.WindowTitle, WindowSettings.WindowX,
         WindowSettings.WindowY, WindowSettings.WindowSizeWidth,
         WindowSettings.WindowSizeHeight, WindowFlags);
-
+    if TPAGE_WRAMLayout(WRAM^).SDLWindow = nil then
+    begin
+      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+        PChar('Error creating window: ' + SDL_GetError));
+      Result := False;
+      Exit;
+    end;
     // Create Renderer
     RendererFlags := 0;
     if RenderSettings.RenderAccelerated then
@@ -48,6 +58,13 @@ begin
     TPAGE_WRAMLayout(WRAM^).SDLRenderer :=
       SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow,
       RenderSettings.RendererNumber, RendererFlags);
+    if TPAGE_WRAMLayout(WRAM^).SDLRenderer = nil then
+    begin
+      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+        PChar('Error creating renderer: ' + SDL_GetError));
+      Result := False;
+      Exit;
+    end;
 
     SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
     SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
