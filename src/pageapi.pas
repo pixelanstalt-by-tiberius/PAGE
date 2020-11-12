@@ -40,6 +40,7 @@ type
     SDLWindow: PSDL_Window;
     SDLRenderer: PSDL_Renderer;
     boolExitGameLoop: Boolean;
+    boolRenderOneFrame: Boolean;
   end;
 
   TPAGE_EventType = (etNotification, etRequest);

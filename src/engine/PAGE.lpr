@@ -279,7 +279,9 @@ function PAGE_Do_EnterGameLoop(overrideDelta: Double = -1): Boolean;
 begin
   PAGE_Do_Splashscreen;
   gEventQueue.CastEventString(etNotification, psMain, psDebug,
-    'Entering game loop');
+    PChar('Entering game loop. OverrideDeltaValue: ' +
+    FloatToStr(overrideDelta)));
+
   while not (TPAGE_WRAMLayout(WRAM^).boolExitGameLoop) do
   begin
     // Check input
@@ -294,7 +296,10 @@ begin
 
     // wait?
     gEventQueue.DoDispatchEvents;
+    if (TPAGE_WRAMLayout(WRAM^).boolRenderOneFrame) then
+      Break;
   end;
+
   gEventQueue.CastEventString(etNotification, psMain, psDebug,
     'Exit game loop');
   gEventQueue.DoDispatchEvents;
