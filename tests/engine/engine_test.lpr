@@ -6,11 +6,14 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, TextTestRunner, page_global;
+  Classes, TextTestRunner, page_global, TestFrameworkProxyIfaces;
 
+var
+  TestResult: ITestResult;
 begin
   page_global.RegisterTests;
-  RunRegisteredTests;
-  { TODO: Check if testresult is returned as application exit code }
+  TestResult := RunRegisteredTests;
+  if TestResult.ErrorCount > 0 then Halt(1);
+  if TestResult.FailureCount > 0 then Halt(2);
 end.
 
