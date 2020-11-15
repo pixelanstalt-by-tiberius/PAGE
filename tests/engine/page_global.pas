@@ -26,7 +26,7 @@ type
 procedure RegisterTests;
 
 const
-  PageLibName: String = {$ifdef LINUX}'../lib' +{$endif} 'page.' + SharedSuffix;
+  PageLibName: String = '../' + {$ifdef LINUX}lib' +{$endif} 'page.' + SharedSuffix;
 
 implementation
 

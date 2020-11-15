@@ -5,7 +5,7 @@ unit APIHelper;
 interface
 
 uses
-  Classes, SysUtils, PAGEAPI;
+  Classes, SysUtils, PAGEAPI, DynLibs;
 
 type
 
