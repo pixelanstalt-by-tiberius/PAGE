@@ -74,14 +74,15 @@ type
   TPAGE_Splashscreen = function(overrideDelta: Double = -1): Boolean;
   TPAGE_AddEventQueueListener = function(aEventListener: TPAGE_EventQueueListener;
     ListenToSubSystems: TPAGE_SubSystems): Boolean;
+  TPAGE_CastEvent = procedure(aEvent: TPAGE_Event; aString: PChar = '');
 
 
 const
-  PAGE_METHOD_NUM = 7;
+  PAGE_METHOD_NUM = 8;
   PAGE_METHOD_NAMES: array[0..PAGE_METHOD_NUM-1] of String = ('PAGE_Do_Initialize',
     'PAGE_Do_Finalize', 'PAGE_Do_BindToApp', 'PAGE_Do_GetRendererInfos',
     'PAGE_Do_EnterGameLoop', 'PAGE_Do_Splashscreen',
-    'PAGE_Do_AddEventQueueListener');
+    'PAGE_Do_AddEventQueueListener', 'PAGE_Do_CastEvent');
 
 implementation
 

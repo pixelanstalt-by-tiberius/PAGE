@@ -3,8 +3,9 @@ library PAGE;
 {$mode objfpc}{$H+}
 
 uses
-  //{$ifdef UNIX} cthreads,{$endif}
-  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers;
+  {$ifdef UNIX} cthreads,{$endif}
+  Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers,
+  page_encapsulate;
 
 var
   WRAM, VRAM, ROM: Pointer;
@@ -313,10 +314,16 @@ begin
   { TODO: Handle result }
 end;
 
+procedure PAGE_Do_CastEvent(aEvent: TPAGE_Event; aString: PChar = '');
+begin
+  gEventQueue.CastEvent(aEvent, aString);
+  //gEventQueue.CastEventString(etNotification, psMain, psMain, 'Test');
+end;
+
 exports
   PAGE_Do_Initialize, PAGE_Do_Finalize, PAGE_Do_BindToApp,
   PAGE_Do_GetRendererInfos, PAGE_Do_EnterGameLoop, PAGE_Do_Splashscreen,
-  PAGE_Do_AddEventQueueListener;
+  PAGE_Do_AddEventQueueListener, PAGE_Do_CastEvent;
 
 end.
 

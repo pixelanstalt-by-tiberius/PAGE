@@ -37,6 +37,8 @@ type
     FInfos: array of TInfo;
     FInfoHead: Integer;
 
+
+
     procedure AddInfo(ASenderName, AText: String; ASeverity: TInfoSeverity);
   public
     constructor Create;
@@ -64,6 +66,7 @@ var
 implementation
 
 { TDebugDataHandler }
+
 
 function TDebugDataHandler.GetInfoCount: Integer;
 begin
@@ -151,6 +154,7 @@ end;
 procedure TDebugDataHandler.UpdateDispatchedEventQueue;
 var
   intLoop, EventHead, EventTail: Integer;
+  strEventType: String;
 begin
   // Exit update if no event was added
   if (FDispatchedEventsTail = -1) or
@@ -166,8 +170,13 @@ begin
   if EventHead > EventTail then
     for intLoop := EventTail to EventHead-1 do
     begin
+      case FDispatchedEvents[intLoop].EventType of
+        etRequest: strEventType := 'Request';
+        etNotification: strEventType := 'Notification';
+      end;
       if FDispatchedEvents[intLoop].EventMessage = emString then
-        AddInfo('EventQueue', Format('%s (@Tick %d)', [
+        AddInfo(Format('EventQueue (%s)', [strEventType]),
+          Format('%s (@Tick %d)', [
           FDispatchedEvents[intLoop].EventMessageString,
           FDispatchedEvents[intLoop].EventTick]), isDebug);
     end
@@ -175,16 +184,29 @@ begin
   begin
     // EventHead is before EventTail (ringbuffer looped)
     for intLoop := EventTail to High(FDispatchedEvents) do
+    begin
+      case FDispatchedEvents[intLoop].EventType of
+        etRequest: strEventType := 'Request';
+        etNotification: strEventType := 'Notification';
+      end;
       if FDispatchedEvents[intLoop].EventMessage = emString then
-        AddInfo('EventQueue', Format('%s (@Tick %d)', [
+        AddInfo(Format('EventQueue (%s)', [strEventType]),
+          Format('%s (@Tick %d)', [
           FDispatchedEvents[intLoop].EventMessageString,
           FDispatchedEvents[intLoop].EventTick]), isDebug);
+    end;
 
     for intLoop := 0 to EventHead-1 do
-       if FDispatchedEvents[intLoop].EventMessage = emString then
-        AddInfo('EventQueue', Format('%s (@Tick %d)', [
-          FDispatchedEvents[intLoop].EventMessageString,
-          FDispatchedEvents[intLoop].EventTick]), isDebug);
+    begin
+      case FDispatchedEvents[intLoop].EventType of
+        etRequest: strEventType := 'Request';
+        etNotification: strEventType := 'Notification';
+      end;
+      if FDispatchedEvents[intLoop].EventMessage = emString then
+        AddInfo(Format('EventQueue (%s)', [strEventType]),
+          Format('%s (@Tick %d)', [FDispatchedEvents[intLoop].
+          EventMessageString, FDispatchedEvents[intLoop].EventTick]), isDebug);
+    end;
   end;
 
   EnterCriticalSection(gEventDispatchCriticalSection);

@@ -294,7 +294,10 @@ begin
     Result := FPAGEAPI.isMethodPointerArrayValid;
 
     if Result then
+    begin
       FPAGEAPI.PAGEAddEventQueueListener(@EventQueueDispatch, [psDebug]);
+      frmDebugConsole.CastEvent := FPAGEAPI.PAGECastEvent;
+    end;
   end;
 end;
 

@@ -5,7 +5,7 @@ unit PAGE_EventQueue;
 interface
 
 uses
-  Classes, SysUtils, PageAPI, SDL2;//, Contnrs;
+  Classes, SysUtils, PageAPI, SDL2;
 
 const
   MAX_EVENTS = High(Word);
@@ -79,10 +79,8 @@ begin
 
   FEvents[FNumEvents-1] := aEvent;
   FEvents[FNumEvents-1].EventTick := SDL_GetTicks;
-  if Length(aString) <> 0 then
+  if StrLen(aString) <> 0 then
   begin
-    { FEvents[FNumEvents-1].EventMessageString := StrAlloc(StrLen(aString)+1);
-    StrCopy(FEvents[FNumEvents-1].EventMessageString, aString); }
     FEvents[FNumEvents-1].EventMessageString := StrNew(aString);
   end;
   LeaveCriticalSection(FEventCriticalSection);
@@ -122,21 +120,22 @@ procedure TPAGE_EventQueue.DoDispatchEvents;
 var
   intEventLoop, intListenersLoop: Integer;
 begin
-  EnterCriticalSection(FEventCriticalSection);
-  for intEventLoop := 0 to FNumEvents-1 do
-    for intListenersLoop := 0 to High(FListeners) do
-      if (psDebug in FListeners[intListenersLoop].ListenerDirection) or
-        (FEvents[intEventLoop].EventReceiverSubsystem in
-         FListeners[intListenersLoop].ListenerDirection) then
-      begin
-        FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
-      end;
-  FNumEvents := 0;
-  LeaveCriticalSection(FEventCriticalSection);
+  if TryEnterCriticalSection(FEventCriticalSection)<>0 then
+  begin
+    for intEventLoop := 0 to FNumEvents-1 do
+      for intListenersLoop := 0 to High(FListeners) do
+        if (psDebug in FListeners[intListenersLoop].ListenerDirection) or
+          (FEvents[intEventLoop].EventReceiverSubsystem in
+           FListeners[intListenersLoop].ListenerDirection) then
+        begin
+          FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
+        end;
+    FNumEvents := 0;
+    LeaveCriticalSection(FEventCriticalSection);
+  end;
 end;
 
 initialization
-  //gEventQueue := TPAGE_EventQueueThread.Create(True);
   gEventQueue := TPAGE_EventQueue.Create;
 
 finalization

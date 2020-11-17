@@ -17,12 +17,14 @@ type
     function GetMethodPointerArrayLength: Integer;
     function GetPAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
     function GetPAGEBindToApp: TPAGE_BindToApp;
+    function GetPAGECastEvent: TPAGE_CastEvent;
     function GetPAGEEnterGameLoop: TPAGE_EnterGameLoop;
     function GetPAGEFinalize: TPAGE_Finalize;
     function GetPAGEGetRendererInfos: TPAGE_GetRendererInfos;
     function GetPAGEInitialize: TPAGE_Initialize;
     procedure SetPAGEAddEventQueueListener(AValue: TPAGE_AddEventQueueListener);
     procedure SetPAGEBindToApp(AValue: TPAGE_BindToApp);
+    procedure SetPAGECastEvent(AValue: TPAGE_CastEvent);
     procedure SetPAGEEnterGameLoop(AValue: TPAGE_EnterGameLoop);
     procedure SetPAGEFinalize(AValue: TPAGE_Finalize);
     procedure SetPAGEGetRendererInfos(AValue: TPAGE_GetRendererInfos);
@@ -42,6 +44,8 @@ type
       write SetPAGEEnterGameLoop;
     property PAGEAddEventQueueListener: TPAGE_AddEventQueueListener read
       GetPAGEAddEventQueueListener write SetPAGEAddEventQueueListener;
+    property PAGECastEvent: TPAGE_CastEvent read GetPAGECastEvent write
+      SetPAGECastEvent;
 
     property MethodPointers[Index: Integer]: Pointer read GetMethodPointer;
     property MethodPointerNum: Integer read GetMethodPointerArrayLength;
@@ -80,6 +84,11 @@ begin
   Result := TPAGE_BindToApp(FMethodPointers[2]);
 end;
 
+function TPAGE_APIHelper.GetPAGECastEvent: TPAGE_CastEvent;
+begin
+  Result := TPAGE_CastEvent(FMethodPointers[7]);
+end;
+
 function TPAGE_APIHelper.GetPAGEEnterGameLoop: TPAGE_EnterGameLoop;
 begin
   Result := TPAGE_EnterGameLoop(FMethodPointers[4]);
@@ -109,6 +118,11 @@ end;
 procedure TPAGE_APIHelper.SetPAGEBindToApp(AValue: TPAGE_BindToApp);
 begin
   FMethodPointers[2] := AValue;
+end;
+
+procedure TPAGE_APIHelper.SetPAGECastEvent(AValue: TPAGE_CastEvent);
+begin
+  FMethodPointers[7] := AValue;
 end;
 
 procedure TPAGE_APIHelper.SetPAGEEnterGameLoop(AValue: TPAGE_EnterGameLoop);
