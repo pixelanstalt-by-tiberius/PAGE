@@ -5,7 +5,7 @@ unit PAGE_EventQueue;
 interface
 
 uses
-  Classes, SysUtils, PageAPI, SDL2;
+  cthreads, Classes, SysUtils, PageAPI, SDL2;
 
 const
   MAX_EVENTS = High(Word);
@@ -79,7 +79,7 @@ begin
 
   FEvents[FNumEvents-1] := aEvent;
   FEvents[FNumEvents-1].EventTick := SDL_GetTicks;
-  if StrLen(aString) <> 0 then
+  if StrLen(aString) > 0 then
   begin
     FEvents[FNumEvents-1].EventMessageString := StrNew(aString);
   end;
@@ -123,13 +123,17 @@ begin
   if TryEnterCriticalSection(FEventCriticalSection)<>0 then
   begin
     for intEventLoop := 0 to FNumEvents-1 do
+    begin
       for intListenersLoop := 0 to High(FListeners) do
+      begin
         if (psDebug in FListeners[intListenersLoop].ListenerDirection) or
           (FEvents[intEventLoop].EventReceiverSubsystem in
            FListeners[intListenersLoop].ListenerDirection) then
         begin
           FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
         end;
+      end;
+    end;
     FNumEvents := 0;
     LeaveCriticalSection(FEventCriticalSection);
   end;

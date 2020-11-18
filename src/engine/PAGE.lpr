@@ -7,303 +7,39 @@ uses
   Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers,
   page_encapsulate;
 
-var
-  WRAM, VRAM, ROM: Pointer;
-  WRAMSize, VRAMSize, ROMSize: Integer;
-
-  boolShowSplashScreen: Boolean = True;
+{ var
+  gPAGE: TPixelanstaltGameEngine;}
 
 function PAGE_Do_Initialize(RenderSettings: TPAGE_RenderSettings;
   WindowSettings: TPAGE_WindowSettings): Boolean;
-var
-  WindowFlags, RendererFlags: UInt32;
-  SDL_RendererInfo: TSDL_RendererInfo;
 begin
-  Result := False;
-
-  { TODO: Handle errors, warnings etc. }
-  Result := SDL_Init(SDL_INIT_EVERYTHING) = 0;
-  if not Result then
-  begin
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
-      PChar('Error initializing SDL: ' + SDL_GetError));
-  end
-  else
-  begin
-    // Create Window
-    if WindowSettings.Fullscreen then
-      WindowFlags := SDL_WINDOW_FULLSCREEN
-    else
-      WindowFlags := SDL_WINDOW_SHOWN;
-
-    TPAGE_WRAMLayout(WRAM^).SDLWindow :=
-      SDL_CreateWindow(WindowSettings.WindowTitle, WindowSettings.WindowX,
-        WindowSettings.WindowY, WindowSettings.WindowSizeWidth,
-        WindowSettings.WindowSizeHeight, WindowFlags);
-    if TPAGE_WRAMLayout(WRAM^).SDLWindow = nil then
-    begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
-        PChar('Error creating window: ' + SDL_GetError));
-      Result := False;
-      gEventQueue.DoDispatchEvents;
-      Exit;
-    end;
-    // Create Renderer
-    RendererFlags := 0;
-    if RenderSettings.RenderAccelerated then
-      RendererFlags := SDL_RENDERER_ACCELERATED
-    else
-      RendererFlags := SDL_RENDERER_SOFTWARE;
-
-    if RenderSettings.EnableVSync then
-      RendererFlags := RendererFlags or SDL_RENDERER_PRESENTVSYNC;
-
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
-      PChar('Creating renderer: ' +
-      PAGERenderSettingsToString(RenderSettings)));
-
-    TPAGE_WRAMLayout(WRAM^).SDLRenderer :=
-      SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow,
-      RenderSettings.RendererNumber, RendererFlags);
-    if TPAGE_WRAMLayout(WRAM^).SDLRenderer = nil then
-    begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
-        PChar('Error creating renderer: ' + SDL_GetError));
-      Result := False;
-      gEventQueue.DoDispatchEvents;
-      Exit;
-    end;
-
-    SDL_GetRendererInfo(TPAGE_WRAMLayout(WRAM^).SDLRenderer, @SDL_RendererInfo);
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
-      PChar('Renderer created: ' +
-      PAGERenderSettingsToString(SDLRendererInfoToPAGERenderSettings(
-      SDL_RendererInfo))));
-
-    if SDL_RenderSetLogicalSize(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
-      RenderSettings.RenderSizeWidth, RenderSettings.RenderSizeHeight) <> 0 then
-    begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
-        PChar('Failed to set logical render size: ' + SDL_GetError));
-    end;
-    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-  end;
-  gEventQueue.DoDispatchEvents;
+  Result := gPAGE.Initialize(RenderSettings, WindowSettings);
 end;
 
 function PAGE_Do_Finalize: Boolean;
 begin
-  Result := False;
+  Result := gPAGE.Finalize;
 end;
 
 function PAGE_Do_BindToApp(aWRAM, aVRAM, aROM: Pointer; aWRAMSize, aVRAMSize,
     aROMSize: Integer): Boolean;
 begin
-  Result := False;
-
-  WRAM := aWRAM;
-  VRAM := aVRAM;
-  ROM := aROM;
-  WRAMSize := aWRAMSize;
-  VRAMSize := aVRAMSize;
-  ROMSize := aROMSize;
-
-  { TODO: Check if sizes are okay and if RAM and ROM are accessible }
-
-  Result := True;
+  Result := gPAGE.BindToApp(aWRAM, aVRAM, aROM, aWRAMSize, aVRAMSize, aROMSize);
 end;
 
 function PAGE_Do_GetRendererInfos(Infos: PPAGE_RendererInfos): Boolean;
-var
-  SDLRendererInfo: TSDL_RendererInfo;
-  intLoop: Integer;
 begin
-  SetLength(Infos^, SDL_GetNumRenderDrivers);
-  for intLoop := 0 to SDL_GetNumRenderDrivers-1 do
-  begin
-    SDL_GetRenderDriverInfo(intLoop, @SDLRendererInfo);
-    with Infos^[intLoop] do
-    begin
-      Name := SDLRendererInfo.name;
-      isSoftware := (SDLRendererInfo.flags and SDL_RENDERER_SOFTWARE) =
-        SDL_RENDERER_SOFTWARE;
-      isAccelerated := (SDLRendererInfo.flags and SDL_RENDERER_ACCELERATED) =
-        SDL_RENDERER_ACCELERATED;
-      isVSyncPresent := (SDLRendererInfo.flags and SDL_RENDERER_PRESENTVSYNC) =
-        SDL_RENDERER_PRESENTVSYNC;
-    end;
-  end;
+  Result := gPAGE.GetRendererInfos(Infos);
 end;
 
 function PAGE_Do_Splashscreen(overrideDelta: Double = -1): Boolean;
-var
-  textureLogo1, textureLogo2: PSDL_Texture;
-  alpha: Double;
-  perfCountFreq, perfCountLast, perfCountCurrent: UInt64;
-  delta: Double;
-  intState: Integer = 0;
-  intTick, intStateChange: UInt64;
-  pchMessage: PChar;
 begin
-  { TODO: Load from resource (assetfile or integrated in so/dll }
-  { TODO: No hardcoded filenames! }
-  textureLogo1 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
-    '../../res/splash_1.png');
-  SDL_SetTextureBlendMode(textureLogo1, SDL_BLENDMODE_BLEND);
-  textureLogo2 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
-    '../../res/splash_2.png');
-  SDL_SetTextureBlendMode(textureLogo2, SDL_BLENDMODE_BLEND);
-
-  { TODO: Make global }
-  perfCountFreq := SDL_GetPerformanceFrequency;
-  perfCountLast := SDL_GetPerformanceCounter;
-
-  SDL_SetRenderDrawColor(TPAGE_WRAMLayout(WRAM^).SDLRenderer, 0, 0, 0, 0);
-  SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-
-  alpha := 0;
-  intTick := 0;
-  intStateChange := 0;
-
-  while (boolShowSplashscreen) do
-  begin
-    perfCountCurrent := SDL_GetPerformanceCounter;
-    delta := (perfCountCurrent - perfCountLast)/(perfCountFreq/10);
-    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-
-    case intState of
-      0: begin
-           { TODO: Debug only - strip! }
-           if intStateChange = 0 then
-             intStateChange := SDL_GetTicks;
-
-           // Transition from black to logo only
-           SDL_SetTextureAlphaMod(textureLogo1, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
-             nil, nil);
-           alpha := alpha+(delta*25);
-           if alpha > 255 then
-           begin
-             alpha := 0;
-             intState := 1;
-
-             { TODO: Debug only - strip! }
-             //pchMessage :=
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 0->1 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
-             intStateChange := 0;
-           end;
-         end;
-      1: begin
-
-           { TODO: Debug only - strip! }
-           if intStateChange = 0 then
-           begin
-             intStateChange := SDL_GetTicks;
-           end;
-           // Transition form logo only to logo with text
-           SDL_SetTextureAlphaMod(textureLogo1, 255);
-           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
-             nil, nil);
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
-             nil, nil);
-
-           if (alpha < 255) then
-             alpha := alpha+(delta*25);
-
-           if (alpha > 255) then
-           begin
-             alpha := 255;
-             intTick := SDL_GetTicks;
-           end;
-           if (intTick <> 0) and (SDL_GetTicks - intTick >= 2000) then
-           begin
-             intState := 2;
-             { TODO: Debug only - strip! }
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 1->2 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
-             intStateChange := 0;
-           end;
-         end;
-      2: begin
-           { TODO: Debug only - strip! }
-           if intStateChange = 0 then
-             intStateChange := SDL_GetTicks;
-           // Transition from logo with text to black
-           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
-             nil, nil);
-           alpha := alpha-(delta*25);
-           if alpha <= 0 then
-           begin
-             alpha := 0;
-             intState := 3;
-             { TODO: Debug only - strip! }
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 2->3 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
-             intStateChange := 0;
-           end;
-         end;
-      3: begin
-           { TODO: Debug only - strip! }
-           if intStateChange = 0 then
-             intStateChange := SDL_GetTicks;
-           SDL_Delay(1000);
-           boolShowSplashscreen := False;
-           { TODO: Debug only - strip! }
-           gEventQueue.CastEventString(etNotification, psMain, psDebug,
-             PChar('State 3 done (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
-           intStateChange := 0;
-         end;
-    end;
-
-    perfCountLast := perfCountCurrent;
-    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-    gEventQueue.DoDispatchEvents;
-  end;
-
-  SDL_DestroyTexture(textureLogo1);
-  SDL_DestroyTexture(textureLogo2);
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
-    'Splashscreen done');
+  Result := gPAGE.Splashscreen(overrideDelta);
 end;
 
 function PAGE_Do_EnterGameLoop(overrideDelta: Double = -1): Boolean;
 begin
-  PAGE_Do_Splashscreen;
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
-    PChar('Entering game loop. OverrideDeltaValue: ' +
-    FloatToStr(overrideDelta)));
-
-  while not (TPAGE_WRAMLayout(WRAM^).boolExitGameLoop) do
-  begin
-    // Check input
-
-    // Do stuff
-      // -> load assets
-      // -> calculate physics
-      // -> render assets to vram
-
-    // Render things
-      // -> render vram
-
-    // wait?
-    gEventQueue.DoDispatchEvents;
-    if (TPAGE_WRAMLayout(WRAM^).boolRenderOneFrame) then
-      Break;
-  end;
-
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
-    'Exit game loop');
-  gEventQueue.DoDispatchEvents;
+  Result := gPAGE.EnterGameLoop(overrideDelta);
 end;
 
 function PAGE_Do_AddEventQueueListener(aEventListener: TPAGE_EventQueueListener;
@@ -317,13 +53,13 @@ end;
 procedure PAGE_Do_CastEvent(aEvent: TPAGE_Event; aString: PChar = '');
 begin
   gEventQueue.CastEvent(aEvent, aString);
-  //gEventQueue.CastEventString(etNotification, psMain, psMain, 'Test');
 end;
 
 exports
   PAGE_Do_Initialize, PAGE_Do_Finalize, PAGE_Do_BindToApp,
   PAGE_Do_GetRendererInfos, PAGE_Do_EnterGameLoop, PAGE_Do_Splashscreen,
   PAGE_Do_AddEventQueueListener, PAGE_Do_CastEvent;
+
 
 end.
 

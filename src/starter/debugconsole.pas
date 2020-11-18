@@ -74,8 +74,8 @@ begin
               aEvent.EventSenderSubsystem := psDebug;
               aEvent.EventReceiverSubsystem := psMain;
               aEvent.EventMessage := emString;
-              aEvent.EventMessageString := PChar(FConsoleOutput.
-                InputBuffer);
+              aEvent.EventMessageString := StrNew(PChar(FConsoleOutput.
+                InputBuffer));
               FCastEvent(aEvent, nil);
               FConsoleOutput.InputBuffer := '';
             end;
