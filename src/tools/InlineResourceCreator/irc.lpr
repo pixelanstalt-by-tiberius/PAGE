@@ -1,14 +1,35 @@
+{ Pixelanstalt Game Engine Inline Resource Creator.
+
+  This command line application takes all files passed by the -f parameter and
+  stores their contents into byte arrays. These byte arrays will be identified
+  by the input filenames and stored into the output file determined by the -o
+  parameter. }
 program irc;
 
 uses
-  Classes, SysUtils, StrUtils, test;
+  Classes, SysUtils, StrUtils;
 
 var
+  // Filenames (full path) of resource files are stored here
   FilesToProcess: array of String;
+  // Constant identifiers are stored in this string list by the
+  // CheckAndAddIdentifier method
   Identifiers: TStringList;
+  // Filename of the output file
   OutputFilename: String;
+  // Will be filled with the pas' contents during program execution
   OutputFileContents: TStringList;
 
+
+{ Checks wheather the constant identifier derived from the filename already
+  exists.
+
+  The identifier is the Filename stripped from the path and any periods.
+
+  If the identifier does not exist, it will be added to the Identifiers
+  stringlist and will return TRUE.
+  If the identifier already exists, the function will NOT add the identifier and
+  will return FALSE. }
 function CheckAndAddIdentifier(Filename: String): Boolean;
 var
   strIdentifier: String;
