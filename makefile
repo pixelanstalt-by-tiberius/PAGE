@@ -47,3 +47,4 @@ clean:
 	rm -rf src/starter/lib
 	rm -rf tests/engine/lib
 	rm -rf src/tools/InlineResourceCreator/lib
+	rm -rf res/*.pas
