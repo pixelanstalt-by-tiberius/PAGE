@@ -11,9 +11,16 @@ endif
 release: lazflags = -r -B --bm=Release -q
 debug: lazflags = --bm=Debug -q -q
 
-release: engine starter
-debug: engine starter
+release: resources engine starter
+debug: resources engine starter
 debug_tests: debug tests do_run_tests
+
+resource_creator:
+	lazbuild src/tools/InlineResourceCreator/irc.lpi
+
+resources: resource_creator
+	# compile resource-pas for the splashscreen
+	bin/debug/tools/irc -fres/splash_1.png -fres/splash_2.png -ores/splash_res.pas
 
 engine:
 	lazbuild $(lazflags) src/engine/PAGE.lpi
@@ -39,3 +46,4 @@ clean:
 	rm -rf src/engine/lib
 	rm -rf src/starter/lib
 	rm -rf tests/engine/lib
+	rm -rf src/tools/InlineResourceCreator/lib
