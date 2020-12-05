@@ -30,7 +30,7 @@
         <PackageName Value="PascalSDL2Header"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="4">
+    <Units Count="8">
       <Unit0>
         <Filename Value="PAGE.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -48,6 +48,22 @@
         <Filename Value="page_encapsulate.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="../../res/splash_res.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="page_texturemanager.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="page_memorymanager.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="page_blockmemorymanager.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit7>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

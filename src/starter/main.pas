@@ -1,3 +1,4 @@
+// main unit of starter
 unit main;
 
 {$mode objfpc}{$H+}

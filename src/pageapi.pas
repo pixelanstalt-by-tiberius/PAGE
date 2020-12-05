@@ -45,7 +45,7 @@ type
 
   TPAGE_EventType = (etNotification, etRequest);
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
-    psROM);
+    psROM, psTextureManager);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
   TPAGE_EventMessage = (emEmpty, emString);
 
@@ -83,6 +83,8 @@ const
     'PAGE_Do_Finalize', 'PAGE_Do_BindToApp', 'PAGE_Do_GetRendererInfos',
     'PAGE_Do_EnterGameLoop', 'PAGE_Do_Splashscreen',
     'PAGE_Do_AddEventQueueListener', 'PAGE_Do_CastEvent');
+
+  PAGE_MM_MAGIC_BYTES: Word = 12345; { TODO: Maybe change }
 
 implementation
 

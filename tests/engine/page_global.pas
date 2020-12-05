@@ -48,6 +48,7 @@ procedure TPAGE_TestCase.TearDown;
 begin
   Check(UnloadLibrary(FLibHandle), 'Error unloading library');
   FLibHandle := NilHandle;
+  FAPIHelper.DoNilPointerArray;
   FAPIHelper.Free;
 end;
 

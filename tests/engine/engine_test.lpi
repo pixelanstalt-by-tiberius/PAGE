@@ -33,7 +33,7 @@
         <PackageName Value="fptest"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="2">
+    <Units Count="3">
       <Unit0>
         <Filename Value="engine_test.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -42,6 +42,10 @@
         <Filename Value="page_global.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit1>
+      <Unit2>
+        <Filename Value="page_blockmm.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

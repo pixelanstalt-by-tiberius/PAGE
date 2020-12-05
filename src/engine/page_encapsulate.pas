@@ -5,7 +5,8 @@ unit page_encapsulate;
 interface
 
 uses
-  cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image, page_helpers;
+  cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
+  page_helpers, page_texturemanager, cmem;
 
 
 type
@@ -23,6 +24,8 @@ type
     FWRAMSize: Integer;
 
     FboolShowSplashScreen: Boolean;
+
+    FTextureManager: TPageTextureManager;
 
     FDispatchedEvents: array[0..MAX_EVENTS] of TPAGE_Event;
     FNumDispatchedEvents: Integer;
@@ -110,6 +113,7 @@ begin
   FboolShowSplashScreen := True;
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);
+  FTextureManager := TPageTextureManager.Create(nil);
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -152,6 +156,7 @@ begin
       gEventQueue.DoDispatchEvents;
       Exit;
     end;
+
     // Create Renderer
     RendererFlags := 0;
     if RenderSettings.RenderAccelerated then
@@ -177,6 +182,10 @@ begin
       gEventQueue.DoDispatchEvents;
       Exit;
     end;
+
+    // Dispatch renderer to subsystems
+    FTextureManager.SetRenderer(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+
 
     SDL_GetRendererInfo(TPAGE_WRAMLayout(WRAM^).SDLRenderer, @SDL_RendererInfo);
     gEventQueue.CastEventString(etNotification, psMain, psDebug,
