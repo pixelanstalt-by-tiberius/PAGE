@@ -14,7 +14,7 @@ type
   TPageMemoryManager = class
   protected
     FptrMemory, FptrAddressableMemory: Pointer;
-    FintMemorySize: Integer;
+    FintMemorySize, FintAddressableMemorySize: Integer;
     FboolIsInitialized: Boolean;
 
     function InitializeMemoryStructure: Boolean; virtual; abstract;
@@ -50,6 +50,7 @@ begin
   FintMemorySize := TotalMemorySize;
   FboolIsInitialized := Word(StartingAddress^) = PAGE_MM_MAGIC_BYTES;
   FptrAddressableMemory := fptrMemory+SizeOf(PAGE_MM_MAGIC_BYTES);
+  fintAddressableMemorySize := FintMemorySize-SizeOf(PAGE_MM_MAGIC_BYTES);
 end;
 
 destructor TPageMemoryManager.Destroy;
@@ -67,9 +68,12 @@ end;
 function TPageMemoryManager.FreeMemory(Reinitialize: Boolean): Boolean;
 begin
   if Reinitialize then
-    DoInitialize
+    Result := DoInitialize
   else
+  begin
     FillByte(FptrMemory^, FintMemorySize, 0);
+    Result := True;
+  end;
 end;
 
 end.

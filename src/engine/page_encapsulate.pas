@@ -6,7 +6,7 @@ interface
 
 uses
   cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
-  page_helpers, page_texturemanager, cmem;
+  page_helpers, page_texturemanager;
 
 
 type
