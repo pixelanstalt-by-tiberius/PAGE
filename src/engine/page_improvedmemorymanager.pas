@@ -251,6 +251,8 @@ var
   ptrNext: Pointer;
 begin
   Result := nil;
+  if Size > High(TSpaceBlock.NextBlockOffset) then
+    Exit;
   ptrNext := FFirstFreePointer;
   while Result = nil do
   begin
@@ -259,9 +261,10 @@ begin
       (TSpaceBlock(ptrNext^).NextBlockOffset >= Size)) then
     begin
       if TSpaceBlock(ptrNext^).NextBlockOffset = 0 then
+      begin
         if FintAddressableMemorySize-4*SizeOf(Word)-FOneByteCap^-
           FTwoBytesCap^-FFourBytesCap^-FEightBytesCap^-
-          (ptrint(FptrAddressableMemory)-ptrint(ptrNext)) >= Size then
+          (ptrint(ptrNext)-ptrint(FptrAddressableMemory)) >= Size then
         begin
           Result := ptrNext+SizeOf(TSpaceBlock);
           TSpaceBlock(ptrNext^).NextBlockOffset := Size;
@@ -275,6 +278,7 @@ begin
           Result := nil;
           Break;
         end;
+      end;
     end
     else
       ptrNext := ptrNext + SizeOf(TSpaceBlock) +

@@ -12,7 +12,8 @@ uses
 
 type
 
- { TPAGE_TestCase }
+ TDynamicPointerArray = array of pointer;
+ PDynamicPointerArray = ^TDynamicPointerArray;
 
  { TPageImprovedMemoryManagerTestCase }
 
@@ -20,6 +21,7 @@ type
  protected
    FMemory: Pointer;
    FMM: TPageImprovedMemoryManager;
+   FOneByte, FTwoByte, FFourByte, FEightByte, FFree: PDynamicPointerArray;
 
    procedure SetUpOnce; override;
    procedure TearDownOnce; override;
@@ -29,6 +31,7 @@ type
    procedure FlashTwoByteMemory;
    procedure FlashFourByteMemory;
    procedure FlashEightByteMemory;
+   procedure TestGetAndFree32B;
  end;
 
 
@@ -252,6 +255,20 @@ begin
       intToStr(intLoop));
     Pointers[intLoop] := nil;
   end;
+end;
+
+procedure TPageImprovedMemoryManagerTestCase.TestGetAndFree32B;
+var
+  ptr32b: Pointer;
+  intLoop: Integer;
+begin
+  ptr32b := FMM.PageMMGetMem(32);
+  Check(ptr32b <> nil, 'Failed to get 32b memory');
+  FillByte(ptr32b^, 32, 3);
+  for intLoop := 0 to 31 do
+    Check(Byte((ptr32b+intLoop)^) = 3, 'Failed variable check on index ' +
+      IntToStr(intLoop));
+  Check(FMM.PageMMFreeMem(ptr32b) <> 0, 'Failed to free 32kb memory');
 end;
 
 
