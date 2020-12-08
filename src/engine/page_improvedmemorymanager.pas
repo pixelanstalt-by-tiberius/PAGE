@@ -33,7 +33,7 @@ type
     procedure SetFourBytesCapacity(AValue: Word);
     procedure SetOneByteCapacity(AValue: Word);
     procedure SetTwoBytesCapacity(AValue: Word);
-
+    function RestoreFromMemory: Boolean;
   protected
     FOneByteCap, FTwoBytesCap, FFourBytesCap, FEightBytesCap: ^Word;
     FFirstFreePointer: Pointer;
@@ -140,6 +140,11 @@ end;
 procedure TPageImprovedMemoryManager.SetTwoBytesCapacity(AValue: Word);
 begin
   FTwoBytesCap^ := AValue;
+end;
+
+function TPageImprovedMemoryManager.RestoreFromMemory: Boolean;
+begin
+  Result := True;
 end;
 
 function TPageImprovedMemoryManager.InitializeMemoryStructure: Boolean;
@@ -474,6 +479,8 @@ begin
   FTwoBytesCap := FOneByteCap-1;
   FFourBytesCap := FTwoBytesCap-1;
   FEightBytesCap := FFourBytesCap-1;
+  FFirstFreePointer := FptrAddressableMemory+FOneByteCap^+FTwoBytesCap^*2+
+    FFourBytesCap^*4+FEightBytesCap^*8;
   FAutoSwitchToBiggerMemory := True;
 end;
 

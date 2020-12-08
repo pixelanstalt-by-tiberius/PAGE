@@ -11,19 +11,21 @@ type
 
   { TPageMemoryManager }
 
-  TPageMemoryManager = class
+  TPageMemoryManager = class(TInterfacedObject, IPageMemoryManager)
   protected
     FptrMemory, FptrAddressableMemory: Pointer;
     FintMemorySize, FintAddressableMemorySize: Integer;
     FboolIsInitialized: Boolean;
 
     function InitializeMemoryStructure: Boolean; virtual; abstract;
+    function RestoreFromMemory: Boolean; virtual; abstract;
   public
     constructor Create(StartingAddress: Pointer; TotalMemorySize: Integer);
     destructor Destroy; override;
 
     function DoInitialize: Boolean;
     function FreeMemory(Reinitialize: Boolean = False): Boolean;
+    function InitializeOrRestore: Boolean;
 
     function PageMMGetMem(Size:ptruint): Pointer; virtual; abstract;
     function PageMMFreeMem(p:pointer): ptruint; virtual; abstract;
@@ -74,6 +76,14 @@ begin
     FillByte(FptrMemory^, FintMemorySize, 0);
     Result := True;
   end;
+end;
+
+function TPageMemoryManager.InitializeOrRestore: Boolean;
+begin
+  if not FboolIsInitialized then
+    Result := DoInitialize
+  else
+    Result := RestoreFromMemory;
 end;
 
 end.
