@@ -7,6 +7,29 @@ interface
 uses
   SDL2;
 
+// Interfaces
+const
+  SPageMemoryManager = '{E42B8EC7-85F8-4713-993E-646897E2BDFA}';
+type
+  IPageMemoryManager = interface
+    [SPageMemoryManager]
+    function DoInitialize: Boolean;
+    function FreeMemory(Reinitialize: Boolean = False): Boolean;
+
+    function PageMMGetMem(Size:ptruint): Pointer;
+    function PageMMFreeMem(p:pointer): ptruint;
+    function PageMMFreeMemSize(p:pointer;Size:ptruint): ptruint;
+    function PageMMAllocMem(Size:ptruint): Pointer;
+    function PageMMReAllocMem(var p:pointer;Size:ptruint): Pointer;
+    function PageMMMemSize(p:pointer): ptruint;
+    function PageMMGetHeapStatus: THeapStatus;
+    function PageMMGetFPCHeapStatus: TFPCHeapStatus;
+
+    property isInitialized: Boolean;
+    property Memory: Pointer;
+    property AddressableMemory: Pointer;
+  end;
+
 // Structures
 type
   TPAGE_RendererInfo = record
@@ -41,6 +64,32 @@ type
     SDLRenderer: PSDL_Renderer;
     boolExitGameLoop: Boolean;
     boolRenderOneFrame: Boolean;
+  end;
+
+  { TODO: Maybe height is not neccessary to save here? }
+  TPageTilemapInfo = packed record
+    Tilemap: Pointer;
+    Width, Height: Integer;
+  end;
+  PPageTileMapInfo = ^TPageTileMapInfo;
+
+  TPageVRAMLayout = packed record
+    Tilemap1: TPageTilemapInfo;
+    Tilemap2: TPageTilemapInfo;
+    Tilemap3: TPageTilemapInfo;
+    Tilemap4: TPageTilemapInfo;
+    Tilemap5: TPageTilemapInfo;
+    Tilemap6: TPageTilemapInfo;
+    // Anything afterwards is memory managed by a memory manager
+  end;
+
+  TPageTextureID = Integer;
+  TPageTileFlags = set of (tfFlipH, tfFlipY, tfPriorityHigh, tfPriorityLow);
+
+  { TODO: Maye packed record for memory purposes }
+  TPageTileRecord = record
+    TextureID: TPageTextureID;
+    Flags: TPageTileFlags;
   end;
 
   TPAGE_EventType = (etNotification, etRequest);

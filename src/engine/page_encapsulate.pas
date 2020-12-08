@@ -6,7 +6,8 @@ interface
 
 uses
   cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
-  page_helpers, page_texturemanager;
+  page_helpers, page_texturemanager, page_memorymanager,
+  page_improvedmemorymanager;
 
 
 type
@@ -23,8 +24,9 @@ type
     FWRAM: Pointer;
     FWRAMSize: Integer;
 
-    FboolShowSplashScreen: Boolean;
+    FVRAMMemMan, FWRAMMemMan: TPageMemoryManager;
 
+    FboolShowSplashScreen: Boolean;
     FTextureManager: TPageTextureManager;
 
     FDispatchedEvents: array[0..MAX_EVENTS] of TPAGE_Event;
@@ -32,6 +34,7 @@ type
     FEventDispatchCriticalSection: TRTLCriticalSection;
 
     procedure ProcessDispatchedEvents;
+    procedure InitializeMemoryManagers;
   public
     property WRAM: Pointer read FWRAM;
     property WRAMSize: Integer read FWRAMSize;
@@ -41,7 +44,7 @@ type
     property ROMSize: Integer read FROMSize;
 
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     function Initialize(RenderSettings: TPAGE_RenderSettings;
       WindowSettings: TPAGE_WindowSettings): Boolean;
@@ -90,6 +93,21 @@ begin
   LeaveCriticalSection(FEventDispatchCriticalSection);
 end;
 
+procedure TPixelanstaltGameEngine.InitializeMemoryManagers;
+begin
+  if Assigned(FWRAMMemMan) then
+    FWRAMMemMan.Free;
+  FWRAMMemMan := TPageImprovedMemoryManager.Create(FWRAM+
+    SizeOf(TPAGE_WRAMLayout), FWRAMSize-SizeOf(TPAGE_WRAMLayout));
+  FWRAMMemMan.InitializeOrRestore;
+
+  if Assigned(FVRAMMemMan) then
+    FVRAMMemMan.Free;
+  FVRAMMemMan := TPageImprovedMemoryManager.Create(FVRAM+
+    SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
+  FVRAMMemMan.InitializeOrRestore;
+end;
+
 procedure EventQueueListenerMaster(
   aDispatchedEvent: TPAGE_Event);
 begin
@@ -113,7 +131,8 @@ begin
   FboolShowSplashScreen := True;
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);
-  FTextureManager := TPageTextureManager.Create(nil);
+  FWRAMMemMan := nil;
+  FVRAMMemMan := nil;
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -184,6 +203,8 @@ begin
     end;
 
     // Dispatch renderer to subsystems
+    { TODO: Must be called in bind? Initialization may not be called everytime
+            PAGE is bound }
     FTextureManager.SetRenderer(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
 
 
@@ -223,8 +244,11 @@ begin
   FROMSize := aROMSize;
 
   { TODO: Check if sizes are okay and if RAM and ROM are accessible }
+  { TODO: Check if is already initialized and bind texture manager etc. }
 
   gEventQueue.AddEventListener(@EventQueueListenerMaster, [psMain]);
+
+  InitializeMemoryManagers;
 
   Result := True;
 end;
