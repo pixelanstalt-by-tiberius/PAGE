@@ -44,7 +44,7 @@ type
     procedure DoRenderPerLayer;
 
     procedure DoDrawTexture(TextureID: TPageTextureID; X, Y: Word; FlipH,
-      FlipV: Boolean);
+      FlipV: Boolean; Alpha: Byte = 255);
   public
     constructor Create(RenderEngineInfo: Pointer; aMemoryManagerInterface:
       IPageMemoryManager; aRenderer: PSDL_Renderer);
@@ -205,8 +205,12 @@ begin
         with TPageSprite((FSpriteStreams[intTilemaps]+
           intSprites*SizeOf(TPageSprite))^) do
         begin
-          DoDrawTexture(TextureID, X, Y, (sfFlipH in Flags), (sfFlipV in
-            Flags));
+          if sfEnableAlpha in Flags then
+            DoDrawTexture(TextureID, X, Y, (sfFlipH in Flags), (sfFlipV in
+              Flags), Alpha)
+          else
+            DoDrawTexture(TextureID, X, Y, (sfFlipH in Flags), (sfFlipV in
+              Flags));
         end;
       end;
   end;
@@ -218,7 +222,7 @@ begin
 end;
 
 procedure TPageRenderEngine.DoDrawTexture(TextureID: TPageTextureID; X,
-  Y: Word; FlipH, FlipV: Boolean);
+  Y: Word; FlipH, FlipV: Boolean; Alpha: Byte);
 var
   FlipFlags: Integer = 0;
   DestRect: TSDL_Rect;
@@ -233,6 +237,8 @@ begin
   DestRect.x := X;
   DestRect.y := Y;
 
+  SDL_SetTextureAlphaMod(FTextureManager^.Textures[TextureID].TexturePointer,
+    Alpha);
   SDL_RenderCopyEx(FRenderer, FTextureManager^.Textures[TextureID].
     TexturePointer, nil, @DestRect, 0, nil, FlipFlags);
 end;

@@ -112,12 +112,13 @@ type
 
 
 
-  TPageSpriteFlags = set of (sfFlipH, sfFlipV);
+  TPageSpriteFlags = set of (sfFlipH, sfFlipV, sfEnableAlpha);
 
   TPageSprite = record
     TextureID: TPageTextureID;
     Flags: TPageSpriteFlags;
     X, Y: Word;
+    Alpha: Byte;
   end;
 
   TPAGE_EventType = (etNotification, etRequest);
