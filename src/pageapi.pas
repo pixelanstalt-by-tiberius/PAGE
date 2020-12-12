@@ -32,6 +32,11 @@ type
 
 // Structures
 type
+  TPageCoordinate2D = record
+    X, Y: Word;
+  end;
+  PPageCoordinate2D = ^TPageCoordinate2D;
+
   TPAGE_RendererInfo = record
     Name: PChar;
     isSoftware: Boolean;
@@ -73,23 +78,46 @@ type
   end;
   PPageTileMapInfo = ^TPageTileMapInfo;
 
-  TPageVRAMLayout = packed record
+  TPageTilemaps = packed record
     Tilemap1: TPageTilemapInfo;
     Tilemap2: TPageTilemapInfo;
     Tilemap3: TPageTilemapInfo;
     Tilemap4: TPageTilemapInfo;
     Tilemap5: TPageTilemapInfo;
     Tilemap6: TPageTilemapInfo;
+  end;
+
+  TPageRenderEngineInfo = packed record
+    TilemapCount: Byte;
+    PerTileRenderingEnabled: Boolean;
+    TileDimension: TPageCoordinate2D;
+    SpriteDimension: TPageCoordinate2D;
+  end;
+  PPageRenderEngineInfo = ^TPageRenderEngineInfo;
+
+  TPageVRAMLayout = packed record
+    RenderEngine: TPageRenderEngineInfo;
+    Tilemaps: TPageTilemaps;
     // Anything afterwards is memory managed by a memory manager
   end;
 
   TPageTextureID = Integer;
-  TPageTileFlags = set of (tfFlipH, tfFlipY, tfPriorityHigh, tfPriorityLow);
+  TPageTileFlags = set of (tfFlipH, tfFlipV, tfPriorityHigh);//, tfPriorityLow);
 
   { TODO: Maye packed record for memory purposes }
   TPageTileRecord = record
     TextureID: TPageTextureID;
     Flags: TPageTileFlags;
+  end;
+
+
+
+  TPageSpriteFlags = set of (sfFlipH, sfFlipV);
+
+  TPageSprite = record
+    TextureID: TPageTextureID;
+    Flags: TPageSpriteFlags;
+    X, Y: Word;
   end;
 
   TPAGE_EventType = (etNotification, etRequest);
@@ -135,7 +163,24 @@ const
 
   PAGE_MM_MAGIC_BYTES: Word = 12345; { TODO: Maybe change }
 
+  PAGE_MAX_TILEMAPS = 6;
+
+  EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0);
+  SPRITE_COUNT = 16; // Sprites per Layer
+
+  PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
+
+  operator = (spritea : TPageSprite; spriteb : TPageSprite) b : boolean;
+
 implementation
+
+operator=(spritea: TPageSprite; spriteb: TPageSprite)b: boolean;
+begin
+  Result := (spritea.TextureID = spriteb.TextureID) and
+    (spritea.flags = spriteb.flags) and
+    (spritea.X = spriteb.X) and
+    (spritea.Y = spriteb.Y);
+end;
 
 end.
 

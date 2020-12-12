@@ -68,6 +68,7 @@ type
     function GetTextureByName(aTextureName: String): PSDL_Texture;
     procedure SetRenderer(aSDLRenderer: PSDL_Renderer);
   end;
+  PPageTextureManager = ^TPageTextureManager;
 
 const
   TEXTUREARRAY_ENLARGE_AMOUNT = 50;

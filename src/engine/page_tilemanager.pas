@@ -12,28 +12,32 @@ type
 
   TPageTileMap = class
   private
+    FisVald: Boolean;
     function GetMapHeight: Integer;
     function GetMapTileRecord(X, Y: Integer): TPageTileRecord;
     function GetMapWidth: Integer;
     procedure SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord);
   protected
     FMemoryManagerInterface: IPageMemoryManager;
-    { FTileMap: PPageTileRecordArray;
-    FWidth, FHeight: PInteger; }
     FMapInfo: PPageTilemapInfo;
+    FisValid: Boolean;
   public
     constructor Create(MapInfo: PPageTilemapInfo;
       MemoryManagerInterface: IPageMemoryManager);
 
     procedure Clear;
     procedure Invalidate;
+    procedure Validate;
     procedure SetMapSize(Width, Height: Integer);
 
     property Map[X, Y: Integer]: TPageTileRecord read GetMapTileRecord
       write SetMapTileRecord;
     property Width: Integer read GetMapWidth;
     property Height: Integer read GetMapHeight;
+    property isValid: Boolean read FisVald;
   end;
+
+  PPageTileMap = ^TPageTileMap;
 
 const
   EMPTY_TILE: TPageTileRecord = (TextureID: -1; Flags: []);
@@ -65,6 +69,7 @@ begin
   Move(AValue, TPageTileRecord((FMapInfo^.Tilemap+Y*FMapInfo^.Width*
     SizeOf(TPageTileRecord)+X*SizeOf(TPageTileRecord))^),
     SizeOf(TPageTileRecord));
+  FisValid := False;
 end;
 
 constructor TPageTileMap.Create(MapInfo: PPageTilemapInfo;
@@ -72,6 +77,7 @@ constructor TPageTileMap.Create(MapInfo: PPageTilemapInfo;
 begin
   FMemoryManagerInterface := MemoryManagerInterface;
   FMapInfo := MapInfo;
+  FisValid := False;
 end;
 
 procedure TPageTileMap.Clear;
@@ -81,11 +87,17 @@ begin
   for intLoop := 0 to (FMapInfo^.Width*FMapInfo^.Width)-1 do
     TPageTileRecord((FMapInfo^.TileMap+intLoop*SizeOf(TPageTileRecord))^) :=
     EMPTY_TILE;
+  FisValid := False;
 end;
 
 procedure TPageTileMap.Invalidate;
 begin
-  { TODO: Implement invalidate function }
+  FisValid := False;
+end;
+
+procedure TPageTileMap.Validate;
+begin
+  FisValid := True;
 end;
 
 // Remember: Width and Height are in tile counts! (Tiles are not pixels)

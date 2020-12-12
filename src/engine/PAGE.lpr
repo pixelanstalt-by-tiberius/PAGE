@@ -7,7 +7,7 @@ uses
   Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers,
   page_encapsulate, splash_res in '../../res/splash_res.pas',
   page_texturemanager, page_memorymanager,
-  page_improvedmemorymanager, page_tilemanager;
+  page_improvedmemorymanager, page_tilemanager, page_renderengine;
 
 { var
   gPAGE: TPixelanstaltGameEngine;}
