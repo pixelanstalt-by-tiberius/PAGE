@@ -11,6 +11,8 @@ type
 
   { TPageRenderEngine }
 
+  { TODO: Add transparency/fading effects to whole layers }
+
   TPageRenderEngine = class
   private
     function GetPerTileRenderingStatus: Boolean;
@@ -232,11 +234,15 @@ begin
   if FlipV then
     FlipFlags := FlipFlags or SDL_FLIP_VERTICAL;
 
+  { TODO: Change to dest in params or do two independent functions for tiles
+          and sprites (latter may be better due to alpha- and blending mods
+          should only be available for sprites }
   DestRect.h := SpriteHeight;
   DestRect.w := SpriteWidth;
   DestRect.x := X;
   DestRect.y := Y;
 
+  { TODO: Maybe manipulate textures once out of rendering functions }
   SDL_SetTextureAlphaMod(FTextureManager^.Textures[TextureID].TexturePointer,
     Alpha);
   SDL_RenderCopyEx(FRenderer, FTextureManager^.Textures[TextureID].
