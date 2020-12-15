@@ -64,12 +64,7 @@ type
     WindowTitle: PChar;
   end;
 
-  TPAGE_WRAMLayout = packed record
-    SDLWindow: PSDL_Window;
-    SDLRenderer: PSDL_Renderer;
-    boolExitGameLoop: Boolean;
-    boolRenderOneFrame: Boolean;
-  end;
+  {  }
 
   { TODO: Maybe height is not neccessary to save here? }
   TPageTilemapInfo = packed record
@@ -95,11 +90,7 @@ type
   end;
   PPageRenderEngineInfo = ^TPageRenderEngineInfo;
 
-  TPageVRAMLayout = packed record
-    RenderEngine: TPageRenderEngineInfo;
-    Tilemaps: TPageTilemaps;
-    // Anything afterwards is memory managed by a memory manager
-  end;
+  {  }
 
   TPageTextureID = Integer;
   TPageTileFlags = set of (tfFlipH, tfFlipV, tfPriorityHigh);//, tfPriorityLow);
@@ -166,10 +157,23 @@ const
 
   PAGE_MAX_TILEMAPS = 6;
 
-  EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0);
+  PAGE_EMPTY_RENDERENGINEINFO: TPageRenderEngineInfo = (TilemapCount: 0;
+    PerTileRenderingEnabled: False; TileDimension : (X: 0; Y: 0);
+    SpriteDimension: (X: 0; Y: 0));
+
+  EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0; Alpha: 255);
   SPRITE_COUNT = 16; // Sprites per Layer
 
   PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
+
+  PAGE_EMPTY_TILEMAPINFO: TPageTilemapInfo = (Tilemap: nil; Width: 0;
+    Height: 0);
+  PAGE_EMPTY_TILEMAPS: TPageTilemaps = (Tilemap1: (Tilemap: nil; Width: 0;
+    Height: 0); Tilemap2: (Tilemap: nil; Width: 0; Height: 0);
+    Tilemap3: (Tilemap: nil; Width: 0; Height: 0);
+    Tilemap4: (Tilemap: nil; Width: 0; Height: 0);
+    Tilemap5: (Tilemap: nil; Width: 0; Height: 0);
+    Tilemap6: (Tilemap: nil; Width: 0; Height: 0));
 
   operator = (spritea : TPageSprite; spriteb : TPageSprite) b : boolean;
 

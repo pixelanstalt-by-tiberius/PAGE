@@ -30,7 +30,7 @@
         <PackageName Value="PascalSDL2Header"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="PAGE.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -76,6 +76,10 @@
         <Filename Value="page_renderengine.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="page_memorywrapper.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

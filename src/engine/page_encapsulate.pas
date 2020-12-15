@@ -6,8 +6,7 @@ interface
 
 uses
   cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
-  page_helpers, page_texturemanager, page_memorymanager,
-  page_improvedmemorymanager;
+  page_helpers, page_texturemanager, page_memorywrapper;
 
 
 type
@@ -19,12 +18,8 @@ type
   private
     FROM: Pointer;
     FROMSize: Integer;
-    FVRAM: Pointer;
-    FVRAMSize: Integer;
-    FWRAM: Pointer;
-    FWRAMSize: Integer;
 
-    FVRAMMemMan, FWRAMMemMan: TPageMemoryManager;
+    FMemoryWrapper: TPageMemoryWrapper;
 
     FboolShowSplashScreen: Boolean;
     FTextureManager: TPageTextureManager;
@@ -34,12 +29,7 @@ type
     FEventDispatchCriticalSection: TRTLCriticalSection;
 
     procedure ProcessDispatchedEvents;
-    procedure InitializeMemoryManagers;
   public
-    property WRAM: Pointer read FWRAM;
-    property WRAMSize: Integer read FWRAMSize;
-    property VRAM: Pointer read FVRAM;
-    property VRAMSize: Integer read FVRAMSize;
     property ROM: Pointer read FROM;
     property ROMSize: Integer read FROMSize;
 
@@ -82,7 +72,7 @@ begin
       (FDispatchedEvents[intEventLoop].EventMessage = emString) then
     begin
       case LowerCase(FDispatchedEvents[intEventLoop].EventMessageString) of
-        'break': TPAGE_WRAMLayout(WRAM^).boolExitGameLoop := true;
+        'break': FMemoryWrapper.ExitGameLoop := true;
         'show_splashscreen': Splashscreen;
       end;
     end;
@@ -91,21 +81,6 @@ begin
   FNumDispatchedEvents := 0;
 
   LeaveCriticalSection(FEventDispatchCriticalSection);
-end;
-
-procedure TPixelanstaltGameEngine.InitializeMemoryManagers;
-begin
-  if Assigned(FWRAMMemMan) then
-    FWRAMMemMan.Free;
-  FWRAMMemMan := TPageImprovedMemoryManager.Create(FWRAM+
-    SizeOf(TPAGE_WRAMLayout), FWRAMSize-SizeOf(TPAGE_WRAMLayout));
-  FWRAMMemMan.InitializeOrRestore;
-
-  if Assigned(FVRAMMemMan) then
-    FVRAMMemMan.Free;
-  FVRAMMemMan := TPageImprovedMemoryManager.Create(FVRAM+
-    SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
-  FVRAMMemMan.InitializeOrRestore;
 end;
 
 procedure EventQueueListenerMaster(
@@ -131,13 +106,13 @@ begin
   FboolShowSplashScreen := True;
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);
-  FWRAMMemMan := nil;
-  FVRAMMemMan := nil;
+  FMemoryWrapper := TPageMemoryWrapper.Create(nil, nil, 0, 0);
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
 begin
   DoneCriticalSection(FEventDispatchCriticalSection);
+  FMemoryWrapper.Free;
 end;
 
 function TPixelanstaltGameEngine.Initialize(RenderSettings:
@@ -163,11 +138,11 @@ begin
     else
       WindowFlags := SDL_WINDOW_SHOWN;
 
-    TPAGE_WRAMLayout(WRAM^).SDLWindow :=
-      SDL_CreateWindow(WindowSettings.WindowTitle, WindowSettings.WindowX,
-        WindowSettings.WindowY, WindowSettings.WindowSizeWidth,
-        WindowSettings.WindowSizeHeight, WindowFlags);
-    if TPAGE_WRAMLayout(WRAM^).SDLWindow = nil then
+    FMemoryWrapper.SDLWindow := SDL_CreateWindow(WindowSettings.WindowTitle,
+      WindowSettings.WindowX, WindowSettings.WindowY,
+      WindowSettings.WindowSizeWidth, WindowSettings.WindowSizeHeight,
+      WindowFlags);
+    if FMemoryWrapper.SDLWindow = nil then
     begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug,
         PChar('Error creating window: ' + SDL_GetError));
@@ -190,10 +165,9 @@ begin
       PChar('Creating renderer: ' +
       PAGERenderSettingsToString(RenderSettings)));
 
-    TPAGE_WRAMLayout(WRAM^).SDLRenderer :=
-      SDL_CreateRenderer(TPAGE_WRAMLayout(WRAM^).SDLWindow,
+    FMemoryWrapper.SDLRenderer := SDL_CreateRenderer(FMemoryWrapper.SDLWindow,
       RenderSettings.RendererNumber, RendererFlags);
-    if TPAGE_WRAMLayout(WRAM^).SDLRenderer = nil then
+    if FMemoryWrapper.SDLRenderer = nil then
     begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug,
         PChar('Error creating renderer: ' + SDL_GetError));
@@ -205,23 +179,23 @@ begin
     // Dispatch renderer to subsystems
     { TODO: Must be called in bind? Initialization may not be called everytime
             PAGE is bound }
-    FTextureManager.SetRenderer(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    FTextureManager.SetRenderer(FMemoryWrapper.SDLRenderer);
 
 
-    SDL_GetRendererInfo(TPAGE_WRAMLayout(WRAM^).SDLRenderer, @SDL_RendererInfo);
+    SDL_GetRendererInfo(FMemoryWrapper.SDLRenderer, @SDL_RendererInfo);
     gEventQueue.CastEventString(etNotification, psMain, psDebug,
       PChar('Renderer created: ' +
       PAGERenderSettingsToString(SDLRendererInfoToPAGERenderSettings(
       SDL_RendererInfo))));
 
-    if SDL_RenderSetLogicalSize(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+    if SDL_RenderSetLogicalSize(FMemoryWrapper.SDLRenderer,
       RenderSettings.RenderSizeWidth, RenderSettings.RenderSizeHeight) <> 0 then
     begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug,
         PChar('Failed to set logical render size: ' + SDL_GetError));
     end;
-    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
-    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    SDL_RenderClear(FMemoryWrapper.SDLRenderer);
+    SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
   end;
   gEventQueue.DoDispatchEvents;
 end;
@@ -236,19 +210,18 @@ function TPixelanstaltGameEngine.BindToApp(aWRAM, aVRAM, aROM: Pointer;
 begin
   Result := False;
 
-  FWRAM := aWRAM;
-  FVRAM := aVRAM;
+  FMemoryWrapper.WRAM := aWRAM;
+  FMemoryWrapper.WRAMSize := aWRAMSize;
+  FMemoryWrapper.VRAM := aVRAM;
+  FMemoryWrapper.VRAMSize := aVRAMSize;
+
   FROM := aROM;
-  FWRAMSize := aWRAMSize;
-  FVRAMSize := aVRAMSize;
   FROMSize := aROMSize;
 
   { TODO: Check if sizes are okay and if RAM and ROM are accessible }
   { TODO: Check if is already initialized and bind texture manager etc. }
 
   gEventQueue.AddEventListener(@EventQueueListenerMaster, [psMain]);
-
-  InitializeMemoryManagers;
 
   Result := True;
 end;
@@ -284,7 +257,7 @@ begin
     PChar('Entering game loop. OverrideDeltaValue: ' +
     FloatToStr(overrideDelta)));
 
-  while not (TPAGE_WRAMLayout(WRAM^).boolExitGameLoop) do
+  while not (FMemoryWrapper.ExitGameLoop) do
   begin
     // Check input
 
@@ -299,7 +272,7 @@ begin
 
     // wait?
     gEventQueue.DoDispatchEvents;
-    if (TPAGE_WRAMLayout(WRAM^).boolRenderOneFrame) then
+    if (FMemoryWrapper.RenderOneFrame) then
       Break;
   end;
 
@@ -320,10 +293,10 @@ var
 begin
   { TODO: Load from resource (assetfile or integrated in so/dll }
   { TODO: No hardcoded filenames! }
-  textureLogo1 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+  textureLogo1 := IMG_LoadTexture(FMemoryWrapper.SDLRenderer,
     '../../res/splash_1.png');
   SDL_SetTextureBlendMode(textureLogo1, SDL_BLENDMODE_BLEND);
-  textureLogo2 := IMG_LoadTexture(TPAGE_WRAMLayout(WRAM^).SDLRenderer,
+  textureLogo2 := IMG_LoadTexture(FMemoryWrapper.SDLRenderer,
     '../../res/splash_2.png');
   SDL_SetTextureBlendMode(textureLogo2, SDL_BLENDMODE_BLEND);
 
@@ -331,8 +304,8 @@ begin
   perfCountFreq := SDL_GetPerformanceFrequency;
   perfCountLast := SDL_GetPerformanceCounter;
 
-  SDL_SetRenderDrawColor(TPAGE_WRAMLayout(WRAM^).SDLRenderer, 0, 0, 0, 0);
-  SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+  SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 0, 0, 0, 0);
+  SDL_RenderClear(FMemoryWrapper.SDLRenderer);
 
   alpha := 0;
   intTick := 0;
@@ -342,7 +315,7 @@ begin
   begin
     perfCountCurrent := SDL_GetPerformanceCounter;
     delta := (perfCountCurrent - perfCountLast)/(perfCountFreq/10);
-    SDL_RenderClear(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    SDL_RenderClear(FMemoryWrapper.SDLRenderer);
 
     case intState of
       0: begin
@@ -352,7 +325,7 @@ begin
 
            // Transition from black to logo only
            SDL_SetTextureAlphaMod(textureLogo1, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo1,
              nil, nil);
            alpha := alpha+(delta*25);
            if alpha > 255 then
@@ -379,9 +352,9 @@ begin
            // Transition form logo only to logo with text
            SDL_SetTextureAlphaMod(textureLogo1, 255);
            SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo1,
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo1,
              nil, nil);
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo2,
              nil, nil);
 
            if (alpha < 255) then
@@ -409,7 +382,7 @@ begin
              intStateChange := SDL_GetTicks;
            // Transition from logo with text to black
            SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(TPAGE_WRAMLayout(WRAM^).SDLRenderer, textureLogo2,
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo2,
              nil, nil);
            alpha := alpha-(delta*25);
            if alpha <= 0 then
@@ -438,7 +411,7 @@ begin
     end;
 
     perfCountLast := perfCountCurrent;
-    SDL_RenderPresent(TPAGE_WRAMLayout(WRAM^).SDLRenderer);
+    SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
     gEventQueue.DoDispatchEvents;
   end;
 
