@@ -66,10 +66,13 @@ end;
 procedure TPageTileMap.SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord);
 begin
   { TODO: Range check }
-  Move(AValue, TPageTileRecord((FMapInfo^.Tilemap+Y*FMapInfo^.Width*
-    SizeOf(TPageTileRecord)+X*SizeOf(TPageTileRecord))^),
-    SizeOf(TPageTileRecord));
-  FisValid := False;
+  if AValue <> GetMapTileRecord(X, Y) then
+  begin
+    Move(AValue, TPageTileRecord((FMapInfo^.Tilemap+Y*FMapInfo^.Width*
+      SizeOf(TPageTileRecord)+X*SizeOf(TPageTileRecord))^),
+      SizeOf(TPageTileRecord));
+    FisValid := False;
+  end;
 end;
 
 constructor TPageTileMap.Create(MapInfo: PPageTilemapInfo;
