@@ -9,6 +9,14 @@ uses
   page_helpers, page_texturemanager, page_memorywrapper;
 
 
+{ TODO: Window-, Renderer- etc. -initailizations should be separated in
+        multiple methods }
+
+{ TODO: Creation, Binding and Initialization of objects must be done
+        consistently for all objects (maybe introduce a bind-method to each
+        class - this makes sure that this object is initialized when needed or
+        bound?) }
+
 type
   { TODO: Get SDL driver infos }
 
@@ -106,7 +114,9 @@ begin
   FboolShowSplashScreen := True;
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);
-  FMemoryWrapper := TPageMemoryWrapper.Create(nil, nil, 0, 0);
+  FMemoryWrapper := TPageMemoryWrapper.Create;
+  FTextureManager := TPageTextureManager.Create(nil, FMemoryWrapper.
+    VRAMMemoryManagerInterface);
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -132,6 +142,8 @@ begin
   end
   else
   begin
+    FMemoryWrapper.InitializeWRAM;
+    FMemoryWrapper.InitializeVRAM;
     // Create Window
     if WindowSettings.Fullscreen then
       WindowFlags := SDL_WINDOW_FULLSCREEN
@@ -182,6 +194,7 @@ begin
     FTextureManager.SetRenderer(FMemoryWrapper.SDLRenderer);
 
 
+
     SDL_GetRendererInfo(FMemoryWrapper.SDLRenderer, @SDL_RendererInfo);
     gEventQueue.CastEventString(etNotification, psMain, psDebug,
       PChar('Renderer created: ' +
@@ -210,10 +223,7 @@ function TPixelanstaltGameEngine.BindToApp(aWRAM, aVRAM, aROM: Pointer;
 begin
   Result := False;
 
-  FMemoryWrapper.WRAM := aWRAM;
-  FMemoryWrapper.WRAMSize := aWRAMSize;
-  FMemoryWrapper.VRAM := aVRAM;
-  FMemoryWrapper.VRAMSize := aVRAMSize;
+  FMemoryWrapper.Bind(aWRAM, aWRAMSize, aVRAM, aVRAMSize);
 
   FROM := aROM;
   FROMSize := aROMSize;
@@ -222,6 +232,10 @@ begin
   { TODO: Check if is already initialized and bind texture manager etc. }
 
   gEventQueue.AddEventListener(@EventQueueListenerMaster, [psMain]);
+  { -> Bind Texture Manager
+  -> Bind Tile Manager
+  -> Bind Rendering Engine }
+
 
   Result := True;
 end;

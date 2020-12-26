@@ -5,17 +5,21 @@ unit page_memorywrapper;
 interface
 
 uses
-  Classes, SysUtils, PageAPI, SDL2, page_improvedmemorymanager;
+  Classes, SysUtils, PageAPI, SDL2, page_memorymanager,
+  page_improvedmemorymanager;
 
 type
   TPageWRAMLayout = packed record
+    isInitializedMagicBytes: array[0..2] of Char;
     SDLWindow: PSDL_Window;
     SDLRenderer: PSDL_Renderer;
+
     boolExitGameLoop: Boolean;
     boolRenderOneFrame: Boolean;
   end;
 
   TPageVRAMLayout = packed record
+    isInitializedMagicBytes: array[0..2] of Char;
     RenderEngine: TPageRenderEngineInfo;
     Tilemaps: TPageTilemaps;
     // Anything afterwards is memory managed by a memory manager
@@ -30,15 +34,18 @@ type
     FVRAMSize: Integer;
     FWRAMSize: Integer;
 
-    FWRAMMemMan, FVRAMMemMan: TPageImprovedMemoryManager;
+    FWRAMMemMan, FVRAMMemMan: TPageMemoryManager;
+    FMemoryManager: TPageMemoryManagerClass;
     function GetExitGameLoop: Boolean;
     function GetRenderEngineInfo: TPageRenderEngineInfo;
     function GetRenderOneFrame: Boolean;
     function GetSDLRenderer: PSDL_Renderer;
     function GetSDLWindow: PSDL_Window;
     function GetTilemaps: TPageTilemaps;
+    function GetVRAMInitializationStatus: Boolean;
     function GetVRAMPointer: Pointer;
     function GetVRAMSize: Integer;
+    function GetWRAMInitializationStatus: Boolean;
     function GetWRAMPointer: Pointer;
     function GetWRAMSize: Integer;
     procedure SetExitGameLoop(AValue: Boolean);
@@ -47,25 +54,30 @@ type
     procedure SetSDLRenderer(AValue: PSDL_Renderer);
     procedure SetSDLWindow(AValue: PSDL_Window);
     procedure SetTilemaps(AValue: TPageTilemaps);
-    procedure SetVRAMPointer(AValue: Pointer);
-    procedure SetVRAMSize(AValue: Integer);
-    procedure SetWRAMPointer(AValue: Pointer);
-    procedure SetWRAMSize(AValue: Integer);
 
-    procedure InitializeVRAMMemoryManagerIfPossible;
-    procedure InitializeWRAMMemoryManagerIfPossible;
+    { procedure InitializeVRAMMemoryManagerIfPossible;
+    procedure InitializeWRAMMemoryManagerIfPossible; }
   public
-    constructor Create(WRAM: Pointer = nil; VRAM: Pointer = nil;
-      WRAMSize: Integer = 0; VRAMSize: Integer = 0);
+    constructor Create;
 
-    property VRAM: Pointer read GetVRAMPointer write SetVRAMPointer;
-    property VRAMSize: Integer read GetVRAMSize write SetVRAMSize;
+    function VRAMMemoryManagerInterface: IPageMemoryManager;
+    function Bind(aWRAM: Pointer; aWRAMSize: Integer; aVRAM: Pointer;
+      aVRAMSize: Integer): Boolean;
+
+    procedure InitializeWRAM;
+    procedure InitializeVRAM;
+
+    property isWRAMInitialized: Boolean read GetWRAMInitializationStatus;
+    property isVRAMInitialized: Boolean read GetVRAMInitializationStatus;
+
+    property VRAM: Pointer read GetVRAMPointer;
+    property VRAMSize: Integer read GetVRAMSize;
     property RenderEngine: TPageRenderEngineInfo read GetRenderEngineInfo
       write SetRenderEngineInfo;
     property Tilemaps: TPageTilemaps read GetTilemaps write SetTilemaps;
 
-    property WRAM: Pointer read GetWRAMPointer write SetWRAMPointer;
-    property WRAMSize: Integer read GetWRAMSize write SetWRAMSize;
+    property WRAM: Pointer read GetWRAMPointer;
+    property WRAMSize: Integer read GetWRAMSize ;
     property SDLWindow: PSDL_Window read GetSDLWindow write SetSDLWindow;
     property SDLRenderer: PSDL_Renderer read GetSDLRenderer
       write SetSDLRenderer;
@@ -126,6 +138,14 @@ begin
     Result := PAGE_EMPTY_TILEMAPS;
 end;
 
+function TPageMemoryWrapper.GetVRAMInitializationStatus: Boolean;
+begin
+  Result := False;
+  if FVRAMPointer <> nil then
+    Result := (TPageVRAMLayout(FVRAMPointer^).isInitializedMagicBytes =
+      PAGE_VRAM_MAGIC_BYTES);
+end;
+
 function TPageMemoryWrapper.GetVRAMPointer: Pointer;
 begin
   Result := FVRAMPointer;
@@ -134,6 +154,14 @@ end;
 function TPageMemoryWrapper.GetVRAMSize: Integer;
 begin
   Result := FVRAMSize;
+end;
+
+function TPageMemoryWrapper.GetWRAMInitializationStatus: Boolean;
+begin
+  Result := False;
+  if FWRAMPointer <> nil then
+    Result := (TPageWRAMLayout(FWRAMPointer^).isInitializedMagicBytes =
+      PAGE_WRAM_MAGIC_BYTES);
 end;
 
 function TPageMemoryWrapper.GetWRAMPointer: Pointer;
@@ -182,60 +210,63 @@ begin
     TPageVRAMLayout(FVRAMPointer^).Tilemaps := AValue;
 end;
 
-procedure TPageMemoryWrapper.SetVRAMPointer(AValue: Pointer);
-begin
-  FVRAMPointer := AValue;
-  InitializeVRAMMemoryManagerIfPossible;
-end;
-
-procedure TPageMemoryWrapper.SetVRAMSize(AValue: Integer);
-begin
-  FVRAMSize := AValue;
-  InitializeVRAMMemoryManagerIfPossible;
-end;
-
-procedure TPageMemoryWrapper.SetWRAMPointer(AValue: Pointer);
-begin
-  FWRAMPointer := AValue;
-  InitializeWRAMMemoryManagerIfPossible;
-end;
-
-procedure TPageMemoryWrapper.SetWRAMSize(AValue: Integer);
-begin
-  FWRAMSize := AValue;
-  InitializeWRAMMemoryManagerIfPossible;
-end;
-
-procedure TPageMemoryWrapper.InitializeVRAMMemoryManagerIfPossible;
-begin
-  if Assigned(FVRAMMemMan) then
-    FVRAMMemMan.Free;
-  if (FVRAMPointer <> nil) and (FVRAMSize > 0) then
-    FVRAMMemMan := TPageImprovedMemoryManager.Create(FVRAMPointer+
-      SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
-end;
-
-procedure TPageMemoryWrapper.InitializeWRAMMemoryManagerIfPossible;
-begin
-  if Assigned(FWRAMMemMan) then
-    FWRAMMemMan.Free;
-  if (FWRAMPointer <> nil) and (FWRAMSize > 0) then
-    FWRAMMemMan := TPageImprovedMemoryManager.Create(FWRAMPointer+
-      SizeOf(TPageWRAMLayout), FWRAMSize-SizeOf(TPageWRAMLayout));
-end;
-
-
-constructor TPageMemoryWrapper.Create(WRAM: Pointer; VRAM: Pointer;
-  WRAMSize: Integer; VRAMSize: Integer);
+constructor TPageMemoryWrapper.Create;
 begin
   FWRAMMemMan := nil;
   FVRAMMemMan := nil;
-  FWRAMPointer := WRAM;
-  FVRAMPointer := VRAM;
-  FWRAMSize := WRAMSize;
-  FVRAMSize := VRAMSize;
-  InitializeWRAMMemoryManagerIfPossible;
-  InitializeVRAMMemoryManagerIfPossible;
+  FMemoryManager := TPageImprovedMemoryManager;
+end;
+
+function TPageMemoryWrapper.VRAMMemoryManagerInterface: IPageMemoryManager;
+begin
+  Result := nil;
+  if Assigned(FVRAMMemMan) then
+    Result := FVRAMMemMan;
+end;
+
+function TPageMemoryWrapper.Bind(aWRAM: Pointer; aWRAMSize: Integer;
+  aVRAM: Pointer; aVRAMSize: Integer): Boolean;
+begin
+  FWRAMPointer := aWRAM;
+  FWRAMSize := aWRAMSize;
+  if isWRAMInitialized then
+  begin
+    FWRAMMemMan := FMemoryManager.Create(FWRAMPointer+
+      SizeOf(TPageWRAMLayout), FWRAMSize-SizeOf(TPageWRAMLayout));
+  end;
+  FVRAMPointer := aVRAM;
+  FVRAMSize := aVRAMSize;
+  if isVRAMInitialized then
+    FVRAMMemMan := FMemoryManager.Create(FVRAMPointer+
+      SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
+end;
+
+procedure TPageMemoryWrapper.InitializeWRAM;
+begin
+  with TPageWRAMLayout(FWRAMPointer^) do
+  begin
+    SDLWindow := nil;
+    SDLRenderer := nil;
+    boolExitGameLoop := False;
+    boolRenderOneFrame := False;
+    FWRAMMemMan := FMemoryManager.Create(FWRAMPointer+
+      SizeOf(TPageWRAMLayout), FWRAMSize-SizeOf(TPageWRAMLayout));
+    FWRAMMemMan.DoInitialize;
+    isInitializedMagicBytes := PAGE_WRAM_MAGIC_BYTES;
+  end;
+end;
+
+procedure TPageMemoryWrapper.InitializeVRAM;
+begin
+   with TPageVRAMLayout(FVRAMPointer^) do
+  begin
+    RenderEngine := PAGE_EMPTY_RENDERENGINEINFO;
+    Tilemaps := PAGE_EMPTY_TILEMAPS;
+    FVRAMMemMan := FMemoryManager.Create(FVRAMPointer+
+      SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
+    FVRAMMemMan.DoInitialize;
+    isInitializedMagicBytes := PAGE_VRAM_MAGIC_BYTES;
+  end;
 end;
 
 end.
