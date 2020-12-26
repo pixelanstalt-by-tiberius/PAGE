@@ -8,11 +8,18 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
-  PAGEAPI, APIHelper;
+  PAGEAPI, APIHelper, SDL2;
 
 {$include ../PAGEconst.inc}
 
 type
+  TPageWRAMLayout = packed record
+    SDLWindow: PSDL_Window;
+    SDLRenderer: PSDL_Renderer;
+    boolExitGameLoop: Boolean;
+    boolRenderOneFrame: Boolean;
+  end;
+
   { TPAGEContextThread }
 
   TPAGEContextThread = class(TThread)
@@ -206,14 +213,14 @@ begin
     FPAGEThread := TPAGEContextThread.Create(True);
     FPAGEThread.OnTerminate := @PageThreadTerminate;
     FPAGEThread.APIHelper := @FPAGEAPI;
-    TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := False;
+    TPAGEWRAMLayout(FptrWRAM^).boolExitGameLoop := False;
     FPAGEThread.Start;
   end;
 end;
 
 procedure TfrmMain.btnGameLoopPauseClick(Sender: TObject);
 begin
-  TPAGE_WRAMLayout(FptrWRAM^).boolExitGameLoop := True;
+  TPAGEWRAMLayout(FptrWRAM^).boolExitGameLoop := True;
 end;
 
 procedure TfrmMain.btnPageInitializeFinalizeClick(Sender: TObject);

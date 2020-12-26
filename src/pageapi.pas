@@ -84,7 +84,8 @@ type
 
   TPageRenderEngineInfo = packed record
     TilemapCount: Byte;
-    PerTileRenderingEnabled: Boolean;
+    RenderingDimension: TPageCoordinate2D; // = Display Dimension
+    CanvasDimension: TPageCoordinate2D;
     TileDimension: TPageCoordinate2D;
     SpriteDimension: TPageCoordinate2D;
   end;
@@ -154,15 +155,17 @@ const
     'PAGE_Do_AddEventQueueListener', 'PAGE_Do_CastEvent');
 
   PAGE_MM_MAGIC_BYTES: Word = 12345; { TODO: Maybe change }
+  PAGE_WRAM_MAGIC_BYTES: array[0..2] of Char = ('P', 'G', 'R');
+  PAGE_VRAM_MAGIC_BYTES: array[0..2] of Char = ('P', 'G', 'V');
 
   PAGE_MAX_TILEMAPS = 6;
 
   PAGE_EMPTY_RENDERENGINEINFO: TPageRenderEngineInfo = (TilemapCount: 0;
-    PerTileRenderingEnabled: False; TileDimension : (X: 0; Y: 0);
-    SpriteDimension: (X: 0; Y: 0));
+    RenderingDimension : (X: 0; Y: 0); CanvasDimension: (X: 0; Y: 0);
+    TileDimension : (X: 0; Y: 0); SpriteDimension: (X: 0; Y: 0));
 
   EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0; Alpha: 255);
-  SPRITE_COUNT = 16; // Sprites per Layer
+  SPRITE_COUNT = 64; // Sprites per Layer
 
   PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
 
@@ -176,6 +179,7 @@ const
     Tilemap6: (Tilemap: nil; Width: 0; Height: 0));
 
   operator = (spritea : TPageSprite; spriteb : TPageSprite) b : boolean;
+  operator = (tilerecorda: TPageTileRecord; tilerecordb: TPageTileRecord) b: boolean;
 
 implementation
 
@@ -185,6 +189,12 @@ begin
     (spritea.flags = spriteb.flags) and
     (spritea.X = spriteb.X) and
     (spritea.Y = spriteb.Y);
+end;
+
+operator=(tilerecorda: TPageTileRecord; tilerecordb: TPageTileRecord)b: boolean;
+begin
+  Result := (tilerecorda.TextureID = tilerecordb.TextureID) and
+    (tilerecorda.Flags = tilerecordb.Flags);
 end;
 
 end.
