@@ -9,6 +9,9 @@ uses
 
 type
 
+  { TODO: Due to Magic Bytes in Memory Wrapper, Magic Bytes here could
+          maybe be omitted }
+
   { TPageMemoryManager }
 
   TPageMemoryManager = class(TInterfacedObject, IPageMemoryManager)
@@ -20,7 +23,7 @@ type
     function InitializeMemoryStructure: Boolean; virtual; abstract;
     function RestoreFromMemory: Boolean; virtual; abstract;
   public
-    constructor Create(StartingAddress: Pointer; TotalMemorySize: Integer);
+    constructor Create(StartingAddress: Pointer; TotalMemorySize: Integer); virtual;
     destructor Destroy; override;
 
     function DoInitialize: Boolean;
@@ -40,6 +43,8 @@ type
     property Memory: Pointer read FptrMemory;
     property AddressableMemory: Pointer read FptrAddressableMemory;
   end;
+
+  TPageMemoryManagerClass = class of TPageMemoryManager;
 
 implementation
 

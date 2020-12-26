@@ -57,7 +57,7 @@ type
 
     function GetFreePointerSize(p: Pointer): ptruint;
   public
-    constructor Create(StartingAddress: Pointer; TotalMemorySize: Integer);
+    constructor Create(StartingAddress: Pointer; TotalMemorySize: Integer); override;
     function PageMMGetMem(Size: ptruint): Pointer; override;
     function PageMMFreeMem(p: pointer): ptruint; override;
     function PageMMFreeMemSize(p: pointer;Size: ptruint): ptruint; override;
@@ -473,7 +473,7 @@ end;
 constructor TPageImprovedMemoryManager.Create(StartingAddress: Pointer;
   TotalMemorySize: Integer);
 begin
-  inherited Create(StartingAddress, TotalMemorySize);
+  inherited; //Create(StartingAddress, TotalMemorySize);
   FOneByteCap := Pointer(ptruint(FptrAddressableMemory)+
     FintAddressableMemorySize-1);
   FTwoBytesCap := FOneByteCap-1;
