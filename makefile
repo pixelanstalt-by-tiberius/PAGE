@@ -20,7 +20,7 @@ resource_creator:
 
 resources: resource_creator
 	# compile resource-pas for the splashscreen
-	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -ores/splash_res.pas
+	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -fres/page.png -ores/splash_res.pas
 
 engine:
 	lazbuild $(lazflags) src/engine/PAGE.lpi
