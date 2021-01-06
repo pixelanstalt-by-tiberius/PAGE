@@ -143,7 +143,13 @@ end;
 
 procedure TPageRenderEngine.SetTilemapCount(AValue: Integer);
 begin
-  FRenderEngineInfo^.TilemapCount := AValue;
+  if (AValue < 0) then
+    FRenderEngineInfo^.TilemapCount := 0
+  else
+    if (AValue <= PAGE_MAX_TILEMAPS) then
+      FRenderEngineInfo^.TilemapCount := AValue
+    else
+      FRenderEngineInfo^.TilemapCount := PAGE_MAX_TILEMAPS;
 end;
 
 procedure TPageRenderEngine.SetTilemapOffset(Index: Integer;

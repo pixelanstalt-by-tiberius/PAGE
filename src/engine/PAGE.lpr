@@ -5,9 +5,9 @@ library PAGE;
 uses
   {$ifdef UNIX} cthreads,{$endif}
   Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers,
-  page_encapsulate, splash_res in '../../res/splash_res.pas',
-  page_texturemanager, page_memorymanager,
-  page_improvedmemorymanager, page_tilemanager, page_renderengine, page_memorywrapper;
+  page_encapsulate, page_texturemanager, page_memorymanager,
+  page_improvedmemorymanager, page_tilemanager, page_renderengine,
+  page_memorywrapper, page_spritemanager;
 
 { var
   gPAGE: TPixelanstaltGameEngine;}

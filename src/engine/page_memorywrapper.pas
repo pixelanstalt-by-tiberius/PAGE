@@ -36,8 +36,12 @@ type
 
     FWRAMMemMan, FVRAMMemMan: TPageMemoryManager;
     FMemoryManager: TPageMemoryManagerClass;
+
+    FOnAfterVRAMInitialized, FOnAfterWRAMInitialized: TNotifyEvent;
+
     function GetExitGameLoop: Boolean;
     function GetRenderEngineInfo: TPageRenderEngineInfo;
+    function GetRenderEngineInfoPointer: Pointer;
     function GetRenderOneFrame: Boolean;
     function GetSDLRenderer: PSDL_Renderer;
     function GetSDLWindow: PSDL_Window;
@@ -72,8 +76,9 @@ type
 
     property VRAM: Pointer read GetVRAMPointer;
     property VRAMSize: Integer read GetVRAMSize;
-    property RenderEngine: TPageRenderEngineInfo read GetRenderEngineInfo
+    property RenderEngineInfo: TPageRenderEngineInfo read GetRenderEngineInfo
       write SetRenderEngineInfo;
+    property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
     property Tilemaps: TPageTilemaps read GetTilemaps write SetTilemaps;
 
     property WRAM: Pointer read GetWRAMPointer;
@@ -84,6 +89,11 @@ type
     property ExitGameLoop: Boolean read GetExitGameLoop write SetExitGameLoop;
     property RenderOneFrame: Boolean read GetRenderOneFrame
       write SetRenderOneFrame;
+
+    property OnAfterWRAMInitialized: TNotifyEvent read FOnAfterWRAMInitialized
+      write FOnAfterWRAMInitialized;
+    property OnAfterVRAMInitialized: TNotifyEvent read FOnAfterVRAMInitialized
+      write FOnAfterVRAMInitialized;
   end;
 
 implementation
@@ -104,6 +114,11 @@ begin
     Result := TPAGEVRAMLayout(FVRAMPointer^).RenderEngine
   else
     Result := PAGE_EMPTY_RENDERENGINEINFO;
+end;
+
+function TPageMemoryWrapper.GetRenderEngineInfoPointer: Pointer;
+begin
+  Result := @TPAGEVRAMLayout(FVRAMPointer^).RenderEngine;
 end;
 
 function TPageMemoryWrapper.GetRenderOneFrame: Boolean;
@@ -215,6 +230,8 @@ begin
   FWRAMMemMan := nil;
   FVRAMMemMan := nil;
   FMemoryManager := TPageImprovedMemoryManager;
+  FOnAfterWRAMInitialized := nil;
+  FOnAfterWRAMInitialized := nil;
 end;
 
 function TPageMemoryWrapper.VRAMMemoryManagerInterface: IPageMemoryManager;
@@ -233,12 +250,18 @@ begin
   begin
     FWRAMMemMan := FMemoryManager.Create(FWRAMPointer+
       SizeOf(TPageWRAMLayout), FWRAMSize-SizeOf(TPageWRAMLayout));
+    if Assigned(FOnAfterWRAMInitialized) then
+      FOnAfterWRAMInitialized(Self);
   end;
   FVRAMPointer := aVRAM;
   FVRAMSize := aVRAMSize;
   if isVRAMInitialized then
+  begin
     FVRAMMemMan := FMemoryManager.Create(FVRAMPointer+
       SizeOf(TPageVRAMLayout), FVRAMSize-SizeOf(TPageVRAMLayout));
+    if Assigned(FOnAfterVRAMInitialized) then
+      FOnAfterVRAMInitialized(Self);
+  end;
 end;
 
 procedure TPageMemoryWrapper.InitializeWRAM;
@@ -254,11 +277,13 @@ begin
     FWRAMMemMan.DoInitialize;
     isInitializedMagicBytes := PAGE_WRAM_MAGIC_BYTES;
   end;
+  if Assigned(FOnAfterWRAMInitialized) then
+    FOnAfterWRAMInitialized(Self);
 end;
 
 procedure TPageMemoryWrapper.InitializeVRAM;
 begin
-   with TPageVRAMLayout(FVRAMPointer^) do
+  with TPageVRAMLayout(FVRAMPointer^) do
   begin
     RenderEngine := PAGE_EMPTY_RENDERENGINEINFO;
     Tilemaps := PAGE_EMPTY_TILEMAPS;
@@ -267,6 +292,8 @@ begin
     FVRAMMemMan.DoInitialize;
     isInitializedMagicBytes := PAGE_VRAM_MAGIC_BYTES;
   end;
+  if Assigned(FOnAfterVRAMInitialized) then
+    FOnAfterVRAMInitialized(Self);
 end;
 
 end.

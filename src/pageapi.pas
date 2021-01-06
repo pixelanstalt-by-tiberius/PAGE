@@ -4,8 +4,8 @@ unit PAGEAPI;
 
 interface
 
-uses
-  SDL2;
+{ uses
+  SDL2;}
 
 // Interfaces
 const
@@ -166,6 +166,7 @@ const
 
   EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0; Alpha: 255);
   SPRITE_COUNT = 64; // Sprites per Layer
+  PAGE_MAX_SPRITES = SPRITE_COUNT*PAGE_MAX_TILEMAPS;
 
   PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
 

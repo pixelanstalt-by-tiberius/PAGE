@@ -6,7 +6,9 @@ interface
 
 uses
   cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
-  page_helpers, page_texturemanager, page_memorywrapper;
+  page_helpers, page_texturemanager, page_memorywrapper,
+  splash_res in '../../res/splash_res.pas', page_spritemanager,
+  page_renderengine;
 
 
 { TODO: Window-, Renderer- etc. -initailizations should be separated in
@@ -31,12 +33,16 @@ type
 
     FboolShowSplashScreen: Boolean;
     FTextureManager: TPageTextureManager;
+    FSpriteManager: TPageSpriteManager;
+    FRenderEngine: TPageRenderEngine;
 
     FDispatchedEvents: array[0..MAX_EVENTS] of TPAGE_Event;
     FNumDispatchedEvents: Integer;
     FEventDispatchCriticalSection: TRTLCriticalSection;
 
     procedure ProcessDispatchedEvents;
+    procedure MemoryWrapperAfterWRAMInitialized(Sender: TObject);
+    procedure MemoryWrapperAfterVRAMInitialized(Sender: TObject);
   public
     property ROM: Pointer read FROM;
     property ROMSize: Integer read FROMSize;
@@ -91,6 +97,30 @@ begin
   LeaveCriticalSection(FEventDispatchCriticalSection);
 end;
 
+procedure TPixelanstaltGameEngine.MemoryWrapperAfterWRAMInitialized(
+  Sender: TObject);
+begin
+
+end;
+
+procedure TPixelanstaltGameEngine.MemoryWrapperAfterVRAMInitialized(
+  Sender: TObject);
+var
+  intLoop: Integer;
+begin
+  FTextureManager := TPageTextureManager.Create(FMemoryWrapper.SDLRenderer,
+    FMemoryWrapper.VRAMMemoryManagerInterface);
+
+  FRenderEngine := TPageRenderEngine.Create(FMemoryWrapper.
+    RenderEngineInfoPointer, FMemoryWrapper.VRAMMemoryManagerInterface,
+    FMemoryWrapper.SDLRenderer);
+
+  FSpriteManager := TPageSpriteManager.Create;
+  FSpriteManager.AssignTextureManager(@FTextureManager);
+  for intLoop := 0 to FRenderEngine.TilemapCount-1 do
+    FSpriteManager.AssignStream(intLoop, FRenderEngine.SpriteStreams[intLoop]);
+end;
+
 procedure EventQueueListenerMaster(
   aDispatchedEvent: TPAGE_Event);
 begin
@@ -115,8 +145,9 @@ begin
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);
   FMemoryWrapper := TPageMemoryWrapper.Create;
-  FTextureManager := TPageTextureManager.Create(nil, FMemoryWrapper.
-    VRAMMemoryManagerInterface);
+  FMemoryWrapper.OnAfterVRAMInitialized := @MemoryWrapperAfterVRAMInitialized;
+  //FTextureManager := TPageTextureManager.Create(nil, FMemoryWrapper.
+  //   VRAMMemoryManagerInterface);
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -234,7 +265,8 @@ begin
   gEventQueue.AddEventListener(@EventQueueListenerMaster, [psMain]);
   { -> Bind Texture Manager
   -> Bind Tile Manager
-  -> Bind Rendering Engine }
+  -> Bind Rendering Engine
+  -> Bind Sprite Manager}
 
 
   Result := True;
@@ -265,8 +297,9 @@ end;
 
 function TPixelanstaltGameEngine.EnterGameLoop(overrideDelta: Double): Boolean;
 begin
-  { if FboolShowSplashScreen then
-    Splashscreen; }
+  if FboolShowSplashScreen then
+    Splashscreen;
+
   gEventQueue.CastEventString(etNotification, psMain, psDebug,
     PChar('Entering game loop. OverrideDeltaValue: ' +
     FloatToStr(overrideDelta)));
@@ -297,22 +330,59 @@ end;
 
 function TPixelanstaltGameEngine.Splashscreen(overrideDelta: Double): Boolean;
 var
-  textureLogo1, textureLogo2: PSDL_Texture;
+  p, a, g, e, fez, page: Integer;
   alpha: Double;
+  RectP, RectA, RectG, RectE, RectFEZ, RectPAGE: TSDL_Rect;
   perfCountFreq, perfCountLast, perfCountCurrent: UInt64;
   delta: Double;
   intState: Integer = 0;
   intTick, intStateChange: UInt64;
-  pchMessage: PChar;
 begin
-  { TODO: Load from resource (assetfile or integrated in so/dll }
-  { TODO: No hardcoded filenames! }
-  textureLogo1 := IMG_LoadTexture(FMemoryWrapper.SDLRenderer,
-    '../../res/splash_1.png');
-  SDL_SetTextureBlendMode(textureLogo1, SDL_BLENDMODE_BLEND);
-  textureLogo2 := IMG_LoadTexture(FMemoryWrapper.SDLRenderer,
-    '../../res/splash_2.png');
-  SDL_SetTextureBlendMode(textureLogo2, SDL_BLENDMODE_BLEND);
+  p := FTextureManager.AddTextureFromInlineResource(@ppng, SizeOf(ppng),
+    rtImagePNG);
+  a := FTextureManager.AddTextureFromInlineResource(@apng, SizeOf(apng),
+    rtImagePNG);
+  g := FTextureManager.AddTextureFromInlineResource(@gpng, SizeOf(gpng),
+    rtImagePNG);
+  e := FTextureManager.AddTextureFromInlineResource(@epng, SizeOf(epng),
+    rtImagePNG);
+  fez := FTextureManager.AddTextureFromInlineResource(@fezpng, SizeOf(fezpng),
+    rtImagePNG);
+  page := FTextureManager.AddTextureFromInlineResource(@pagepng,
+    SizeOf(pagepng), rtImagePNG);
+
+  RectP.x := 50;
+  RectP.y := 60;
+  RectP.h := FTextureManager.GetTextureDimensions(p).y;
+  RectP.w := FTextureManager.GetTextureDimensions(p).x;
+
+  RectFEZ.x := RectP.x + RectP.w - FTextureManager.GetTextureDimensions(fez).x +
+    10;
+  RectFEZ.y := RectP.y - FTextureManager.GetTextureDimensions(fez).y;
+  RectFEZ.h := FTextureManager.GetTextureDimensions(fez).y;
+  RectFEZ.w := FTextureManager.GetTextureDimensions(fez).x;
+
+  RectA.x := RectP.x + RectP.w + 10;
+  RectA.y := RectP.y;
+  RectA.h := FTextureManager.GetTextureDimensions(a).y;
+  RectA.w := FTextureManager.GetTextureDimensions(a).x;
+
+  RectG.x := RectA.x + RectA.w + 10;
+  RectG.y := RectA.y;
+  RectG.h := FTextureManager.GetTextureDimensions(g).y;
+  RectG.w := FTextureManager.GetTextureDimensions(g).x;
+
+  RectE.x := RectG.x + RectG.w + 10;
+  RectE.y := RectG.y;
+  RectE.h := FTextureManager.GetTextureDimensions(e).y;
+  RectE.w := FTextureManager.GetTextureDimensions(e).x;
+
+  { TODO: Calculate offset }
+  RectPAGE.x := 10;
+  RectPAGE.y := RectA.y + RectA.h + 15;
+  RectPAGE.h := FTextureManager.GetTextureDimensions(page).y;
+  RectPAGE.w := FTextureManager.GetTextureDimensions(page).x;
+
 
   { TODO: Make global }
   perfCountFreq := SDL_GetPerformanceFrequency;
@@ -338,19 +408,46 @@ begin
              intStateChange := SDL_GetTicks;
 
            // Transition from black to logo only
-           SDL_SetTextureAlphaMod(textureLogo1, Round(alpha));
-           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo1,
-             nil, nil);
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[p],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[a],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[g],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[e],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[fez],
+             Round(alpha));
+
+
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[p], nil, @RectP);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[fez], nil, @RectFEZ);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[a], nil, @RectA);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[g], nil, @RectG);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[e], nil, @RectE);
+
            alpha := alpha+(delta*25);
            if alpha > 255 then
            begin
              alpha := 0;
              intState := 1;
 
+             SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[p], 255);
+             SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[a], 255);
+             SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[g], 255);
+             SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[e], 255);
+             SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[fez], 255);
+
              { TODO: Debug only - strip! }
              //pchMessage :=
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 0->1 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+               PChar('State 0->1 (' + IntToStr(SDL_GetTicks-intStateChange) +
+               ' ms)'));
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
@@ -364,12 +461,22 @@ begin
              intStateChange := SDL_GetTicks;
            end;
            // Transition form logo only to logo with text
-           SDL_SetTextureAlphaMod(textureLogo1, 255);
-           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo1,
-             nil, nil);
-           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo2,
-             nil, nil);
+
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[page],
+             Round(alpha));
+
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[p], nil, @RectP);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[fez], nil, @RectFEZ);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[a], nil, @RectA);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[g], nil, @RectG);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[e], nil, @RectE);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[page], nil, @RectPAGE);
 
            if (alpha < 255) then
              alpha := alpha+(delta*25);
@@ -384,7 +491,8 @@ begin
              intState := 2;
              { TODO: Debug only - strip! }
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 1->2 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+               PChar('State 1->2 (' + IntToStr(SDL_GetTicks-intStateChange) +
+               ' ms)'));
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
@@ -395,23 +503,82 @@ begin
            if intStateChange = 0 then
              intStateChange := SDL_GetTicks;
            // Transition from logo with text to black
-           SDL_SetTextureAlphaMod(textureLogo2, Round(alpha));
-           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, textureLogo2,
-             nil, nil);
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[p],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[a],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[g],
+             Round(alpha));
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[e],
+             Round(alpha));
+           //SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[fez], 255);
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[page],
+             Round(alpha));
+
+
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[p], nil, @RectP);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[fez], nil, @RectFEZ);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[a], nil, @RectA);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[g], nil, @RectG);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[e], nil, @RectE);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[page], nil, @RectPAGE);
+
            alpha := alpha-(delta*25);
            if alpha <= 0 then
            begin
-             alpha := 0;
+             alpha := 255;
              intState := 3;
              { TODO: Debug only - strip! }
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               PChar('State 2->3 (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+               PChar('State 2->3 (' + IntToStr(SDL_GetTicks-intStateChange) +
+               ' ms)'));
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
            end;
          end;
       3: begin
+           if intStateChange = 0 then
+             intStateChange := SDL_GetTicks;
+
+           SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[fez],
+             Round(alpha));
+
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[p], nil, @RectP);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[fez], nil, @RectFEZ);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[a], nil, @RectA);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[g], nil, @RectG);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[e], nil, @RectE);
+           SDL_RenderCopy(FMemoryWrapper.SDLRenderer, FTextureManager.
+             TexturePointers[page], nil, @RectPAGE);
+
+            alpha := alpha-(delta*25);
+           if alpha <= 0 then
+           begin
+             alpha := 255;
+             intState := 4;
+             { TODO: Debug only - strip! }
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('State 3->4 (' + IntToStr(SDL_GetTicks-intStateChange) +
+               ' ms)'));
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
+             intStateChange := 0;
+           end;
+
+         end;
+      4: begin
            { TODO: Debug only - strip! }
            if intStateChange = 0 then
              intStateChange := SDL_GetTicks;
@@ -419,7 +586,8 @@ begin
            FboolShowSplashscreen := False;
            { TODO: Debug only - strip! }
            gEventQueue.CastEventString(etNotification, psMain, psDebug,
-             PChar('State 3 done (' + IntToStr(SDL_GetTicks-intStateChange) + ' ms)'));
+             PChar('State 4 done (' + IntToStr(SDL_GetTicks-intStateChange) +
+             ' ms)'));
            intStateChange := 0;
          end;
     end;
@@ -429,8 +597,8 @@ begin
     gEventQueue.DoDispatchEvents;
   end;
 
-  SDL_DestroyTexture(textureLogo1);
-  SDL_DestroyTexture(textureLogo2);
+  FTextureManager.FreeAllTextures;
+
   gEventQueue.CastEventString(etNotification, psMain, psDebug,
     'Splashscreen done');
 end;
