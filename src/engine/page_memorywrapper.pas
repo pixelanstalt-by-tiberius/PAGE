@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, PageAPI, SDL2, page_memorymanager,
-  page_improvedmemorymanager;
+  page_improvedmemorymanager, page_dummymemorymanager;
 
 type
   TPageWRAMLayout = packed record
@@ -229,7 +229,7 @@ constructor TPageMemoryWrapper.Create;
 begin
   FWRAMMemMan := nil;
   FVRAMMemMan := nil;
-  FMemoryManager := TPageImprovedMemoryManager;
+  FMemoryManager := TPageDummyMemoryManager;
   FOnAfterWRAMInitialized := nil;
   FOnAfterWRAMInitialized := nil;
 end;
