@@ -9,6 +9,7 @@ uses
 
 { TODO: Reference count for textures }
 { TODO: "Texture hash"? }
+{ TODO: Texture Limit will be lost on rebind }
 
 type
   { TODO: Maybe add source and dirty flag to allow reload if renderer changes }
@@ -20,8 +21,7 @@ type
     TextureName: String;
     TexturePointer: PSDL_Texture;
   end;
-  TPageTextureInfoArray = array of TPageTextureInfo;
-  PPageTextureInfoArray = ^TPageTextureInfoArray;
+  PPageTextureInfo = ^TPageTextureInfo;
 
 
   TPageInlineResourceType = (rtImagePNG, rtImageBMP, rtTexture);
@@ -30,19 +30,19 @@ type
 
   TPageTextureManager = class
   private
-    FCurrentTextureCount, FTextureLimit: Integer;
+    { TODO: Move FCurrentTextureCount to PersistenceInfo }
+    FTextureLimit: Integer;
 
     function GetPageTextureInfo(Index: Integer): TPageTextureInfo;
     function GetTextureCount: Integer;
     function GetTextureLimit: Integer;
     function GetTexturePointer(Index: Integer): PSDL_Texture;
+    procedure SetPageTextureInfo(Index: Integer; AValue: TPageTextureInfo);
     procedure SetTextureLimit(AValue: Integer);
   protected
-    FTextShadowArray: TPageTextureInfoArray;
-    FTextures: PPageTextureInfoArray;
-    FTextureNameSearchTable: array[0..26] of array of Integer;
-    FSDLRenderer: PSDL_Renderer;
-    FMemoryManager: IPageMemoryManager;
+    //FTextureNameSearchTable: array[0..26] of array of Integer;
+
+    FMemoryWrapper: IPageMemoryWrapper;
 
     function CanAddNewTexture: Boolean; inline;
     procedure CheckAndEnlargeTextureArray; //inline;
@@ -56,14 +56,14 @@ type
     function LoadInlineResourcePNG(aResource: Pointer;
       aResourceSize: Integer): PSDL_Texture;
   public
-    property TextureCount: Integer read FCurrentTextureCount;
+    property TextureCount: Integer read GetTextureCount;
     property TextureLimit: Integer read GetTextureLimit write SetTextureLimit;
     property TexturePointers[Index: Integer]: PSDL_Texture
       read GetTexturePointer;
-    property Textures[Index: Integer]: TPageTextureInfo read GetPageTextureInfo;
+    property Textures[Index: Integer]: TPageTextureInfo read GetPageTextureInfo
+      write SetPageTextureInfo;
 
-    constructor Create(aSDLRenderer: PSDL_Renderer;
-      aMemoryManager: IPageMemoryManager);
+    constructor Create(aMemoryWrapper: IPageMemoryWrapper);
     destructor Destroy; override;
 
     function AddTextureFromInlineResource(aResource: Pointer;
@@ -72,7 +72,6 @@ type
     function FreeTexture(Index: Integer): Boolean;
     function FreeAllTextures: Boolean;
     function GetTextureByName(aTextureName: String): PSDL_Texture;
-    procedure SetRenderer(aSDLRenderer: PSDL_Renderer);
     function GetTextureDimensions(aTextureID: Integer): TPageCoordinate2D;
   end;
   PPageTextureManager = ^TPageTextureManager;
@@ -89,15 +88,13 @@ implementation
 function TPageTextureManager.GetPageTextureInfo(Index: Integer
   ): TPageTextureInfo;
 begin
-  if (Index > -1) and (Index <= High(FTextures^)) then
-    Result := FTextures^[Index]
-  else
-    Result := UNDEFINED_TEXTURE_INFO;
+  Result := TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
+    TextureInfoPersistence.Stream+Index*SizeOf(TPageTextureInfo))^);
 end;
 
 function TPageTextureManager.GetTextureCount: Integer;
 begin
-  Result := FCurrentTextureCount;
+  Result := FMemoryWrapper.TextureManagerInfo.CurrentTextureInfoCount;
 end;
 
 function TPageTextureManager.GetTextureLimit: Integer;
@@ -108,8 +105,18 @@ end;
 function TPageTextureManager.GetTexturePointer(Index: Integer): PSDL_Texture;
 begin
   Result := nil;
-  if (Index > -1) and (Index <= High(FTextures^)) then
-    Result := FTextures^[Index].TexturePointer;
+  if (Index > -1) and (Index <= TextureCount-1) then
+    Result := Textures[Index].TexturePointer;
+end;
+
+procedure TPageTextureManager.SetPageTextureInfo(Index: Integer;
+  AValue: TPageTextureInfo);
+begin
+  { TODO: Check boundaries }
+
+  Move(AValue, (FMemoryWrapper.TextureManagerInfo.
+    TextureInfoPersistence.Stream+Index*SizeOf(TPageTextureInfo))^,
+    SizeOf(AValue));
 end;
 
 procedure TPageTextureManager.SetTextureLimit(AValue: Integer);
@@ -122,13 +129,37 @@ end;
 
 function TPageTextureManager.CanAddNewTexture: Boolean;
 begin
-  Result := (FTextureLimit = -1) or (FTextureLimit < FCurrentTextureCount);
+  Result := (FTextureLimit = -1) or (FTextureLimit < TextureCount);
 end;
 
 procedure TPageTextureManager.CheckAndEnlargeTextureArray;
+var
+  ptrNew: Pointer;
 begin
-  if (FCurrentTextureCount+1) > High(FTextures^) then
-    SetLength(FTextures^, Length(FTextures^)+TEXTUREARRAY_ENLARGE_AMOUNT);
+  { TODO: Offset error? }
+  if (TextureCount+1) > FMemoryWrapper.TextureManagerInfo.
+    TextureInfoPersistence.EntriesOrSize then
+  begin
+    ptrNew := FMemoryWrapper.VRAMMemoryManagerInterface.PageMMAllocMem((
+      FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.EntriesOrSize+
+      TEXTUREARRAY_ENLARGE_AMOUNT)*SizeOf(TPageTextureInfo));
+
+    Move(FMemoryWrapper.TextureManagerInfo.
+      TextureInfoPersistence.Stream, ptrNew, FMemoryWrapper.TextureManagerInfo.
+      TextureInfoPersistence.EntriesOrSize*SizeOf(TPageTextureInfo));
+    if FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.Stream <>
+      nil then
+      FMemoryWrapper.VRAMMemoryManagerInterface.PageMMFreeMem(FMemoryWrapper.
+        TextureManagerInfo.TextureInfoPersistence.Stream);
+    TPageTextureManagerInfo(FMemoryWrapper.TextureManagerInfoPointer^).
+      TextureInfoPersistence.Stream := ptrNew;
+
+    TPageTextureManagerInfo(FMemoryWrapper.TextureManagerInfoPointer^).
+      TextureInfoPersistence.EntriesOrSize :=
+      (FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.EntriesOrSize+
+      TEXTUREARRAY_ENLARGE_AMOUNT)*SizeOf(TPageTextureInfo)
+    //SetLength(FTextures^, Length(FTextures^)+TEXTUREARRAY_ENLARGE_AMOUNT);
+  end;
 end;
 
 function TPageTextureManager.AddTexture(aSDLTexture: PSDL_Texture;
@@ -140,12 +171,19 @@ begin
     { TODO: Refactor if needed by memory manager }
     CheckAndEnlargeTextureArray;
 
-    FTextures^[FCurrentTextureCount].TextureName := aTextureName;
-    FTextures^[FCurrentTextureCount].TexturePointer := aSDLTexture;
+    TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
+      TextureInfoPersistence.Stream+TextureCount*
+      SizeOf(TPageTextureInfo))^).TextureName := aTextureName;
+    //Textures[FCurrentTextureCount].TextureName := aTextureName;
+    //Textures[FCurrentTextureCount].TexturePointer := aSDLTexture;
+    TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
+      TextureInfoPersistence.Stream+TextureCount*
+      SizeOf(TPageTextureInfo))^).TexturePointer := aSDLTexture;
 
-    Result := FCurrentTextureCount;
+    Result := TextureCount;
 
-    Inc(FCurrentTextureCount);
+    Inc(TPageTextureManagerInfo(FMemoryWrapper.TextureManagerInfoPointer^).
+      CurrentTextureInfoCount);
   end;
 end;
 
@@ -164,12 +202,12 @@ var
 begin
   Result := -1;
 
-  for intTextureLoop := 0 to High(FTextures^) do
+  for intTextureLoop := 0 to TextureCount-1 do
   begin
-    if FTextures^[intTextureLoop].TexturePointer = nil then
+    if Textures[intTextureLoop].TexturePointer = nil then
       Continue;
 
-    if FTextures^[intTextureLoop].TextureName = aTextureName then
+    if Textures[intTextureLoop].TextureName = aTextureName then
     begin
       Result := intTextureLoop;
       Exit;
@@ -183,18 +221,16 @@ var
   rwop: PSDL_RWops;
 begin
   rwop := SDL_RWFromConstMem(aResource, aResourceSize);
-  Result := IMG_LoadTextureTyped_RW(FSDLRenderer, rwop, -1, 'PNG');
+  Result := IMG_LoadTextureTyped_RW(FMemoryWrapper.SDLRenderer, rwop, -1,
+    'PNG');
 end;
 
-constructor TPageTextureManager.Create(aSDLRenderer: PSDL_Renderer;
-  aMemoryManager: IPageMemoryManager);
+constructor TPageTextureManager.Create(aMemoryWrapper: IPageMemoryWrapper);
 begin
-  FSDLRenderer := aSDLRenderer;
-  FCurrentTextureCount := 0;
+  FMemoryWrapper := aMemoryWrapper;
   FTextureLimit := -1;
-  FMemoryManager := aMemoryManager;
-  SetLength(FTextShadowArray, 0);
-  FTextures := @FTextShadowArray;
+  //SetLength(FTextShadowArray, 0);
+  //FTextures := @FTextShadowArray;
   {$warning SetLength methods etc. must be changed for use with provided
             memory manager }
 end;
@@ -228,7 +264,7 @@ var
   intTextureLoop: Integer;
 begin
   Result := True;
-  for intTextureLoop := 0 to High(FTextures^) do
+  for intTextureLoop := 0 to TextureCount-1 do
   begin
     Result := FreeTexture(intTextureLoop);
     if not Result then
@@ -244,23 +280,13 @@ begin
   Result := nil;
   intTextureIndex := GetTextureIndexByLinearSearch(aTextureName);
   if intTextureIndex > -1 then
-    Result := FTextures^[intTextureIndex].TexturePointer;
-end;
-
-procedure TPageTextureManager.SetRenderer(aSDLRenderer: PSDL_Renderer);
-begin
-  { TODO: Issue warning / omit if dirty flag and reloading can be done on the
-          fly }
-  if FSDLRenderer <> nil then
-    FreeAllTextures;
-
-  FSDLRenderer := aSDLRenderer;
+    Result := Textures[intTextureIndex].TexturePointer;
 end;
 
 function TPageTextureManager.GetTextureDimensions(aTextureID: Integer
   ): TPageCoordinate2D;
 begin
-  SDL_QueryTexture(FTextures^[aTextureID].TexturePointer, nil, nil, @Result.X,
+  SDL_QueryTexture(Textures[aTextureID].TexturePointer, nil, nil, @Result.X,
     @Result.Y);
 end;
 
@@ -268,11 +294,11 @@ end;
 function TPageTextureManager.FreeTexture(Index: Integer): Boolean;
 begin
   Result := False;
-  if (Index > -1) and (Index <= High(FTextures^)) then
+  if (Index > -1) and (Index <= TextureCount-1) then
   begin
     if Textures[Index].TexturePointer <> nil then
-      SDL_DestroyTexture(FTextures^[Index].TexturePointer);
-    FTextures^[Index] := UNDEFINED_TEXTURE_INFO;
+      SDL_DestroyTexture(Textures[Index].TexturePointer);
+    Textures[Index] := UNDEFINED_TEXTURE_INFO;
     Result := True;
   end;
 end;

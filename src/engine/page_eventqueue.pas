@@ -16,6 +16,8 @@ type
     ListenerDirection: TPAGE_SubSystems;
   end;
 
+  { TODO: Queue events in WRAM if possible }
+
   { TPAGE_EventQueue }
 
   TPAGE_EventQueue = class

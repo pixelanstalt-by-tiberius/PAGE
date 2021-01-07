@@ -108,13 +108,8 @@ procedure TPixelanstaltGameEngine.MemoryWrapperAfterVRAMInitialized(
 var
   intLoop: Integer;
 begin
-  FTextureManager := TPageTextureManager.Create(FMemoryWrapper.SDLRenderer,
-    FMemoryWrapper.VRAMMemoryManagerInterface);
-
-  FRenderEngine := TPageRenderEngine.Create(FMemoryWrapper.
-    RenderEngineInfoPointer, FMemoryWrapper.VRAMMemoryManagerInterface,
-    FMemoryWrapper.SDLRenderer);
-
+  FTextureManager := TPageTextureManager.Create(FMemoryWrapper);
+  FRenderEngine := TPageRenderEngine.Create(FMemoryWrapper, @FTextureManager);
   FSpriteManager := TPageSpriteManager.Create;
   FSpriteManager.AssignTextureManager(@FTextureManager);
   for intLoop := 0 to FRenderEngine.TilemapCount-1 do
@@ -146,8 +141,6 @@ begin
   InitCriticalSection(FEventDispatchCriticalSection);
   FMemoryWrapper := TPageMemoryWrapper.Create;
   FMemoryWrapper.OnAfterVRAMInitialized := @MemoryWrapperAfterVRAMInitialized;
-  //FTextureManager := TPageTextureManager.Create(nil, FMemoryWrapper.
-  //   VRAMMemoryManagerInterface);
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -219,13 +212,6 @@ begin
       Exit;
     end;
 
-    // Dispatch renderer to subsystems
-    { TODO: Must be called in bind? Initialization may not be called everytime
-            PAGE is bound }
-    FTextureManager.SetRenderer(FMemoryWrapper.SDLRenderer);
-
-
-
     SDL_GetRendererInfo(FMemoryWrapper.SDLRenderer, @SDL_RendererInfo);
     gEventQueue.CastEventString(etNotification, psMain, psDebug,
       PChar('Renderer created: ' +
@@ -260,14 +246,8 @@ begin
   FROMSize := aROMSize;
 
   { TODO: Check if sizes are okay and if RAM and ROM are accessible }
-  { TODO: Check if is already initialized and bind texture manager etc. }
 
   gEventQueue.AddEventListener(@EventQueueListenerMaster, [psMain]);
-  { -> Bind Texture Manager
-  -> Bind Tile Manager
-  -> Bind Rendering Engine
-  -> Bind Sprite Manager}
-
 
   Result := True;
 end;

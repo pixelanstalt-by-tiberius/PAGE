@@ -4,37 +4,26 @@ unit PAGEAPI;
 
 interface
 
-{ uses
-  SDL2;}
+uses
+  SDL2;
 
 // Interfaces
 const
+  SPageMemoryWrapper = '{E24636B0-465A-4835-BFAD-60D699D43235}';
   SPageMemoryManager = '{E42B8EC7-85F8-4713-993E-646897E2BDFA}';
-type
-  IPageMemoryManager = interface
-    [SPageMemoryManager]
-    function DoInitialize: Boolean;
-    function FreeMemory(Reinitialize: Boolean = False): Boolean;
-
-    function PageMMGetMem(Size:ptruint): Pointer;
-    function PageMMFreeMem(p:pointer): ptruint;
-    function PageMMFreeMemSize(p:pointer;Size:ptruint): ptruint;
-    function PageMMAllocMem(Size:ptruint): Pointer;
-    function PageMMReAllocMem(var p:pointer;Size:ptruint): Pointer;
-    function PageMMMemSize(p:pointer): ptruint;
-    function PageMMGetHeapStatus: THeapStatus;
-    function PageMMGetFPCHeapStatus: TFPCHeapStatus;
-
-    property isInitialized: Boolean;
-    property Memory: Pointer;
-    property AddressableMemory: Pointer;
-  end;
 
 // Structures
 type
+  TPageStreamPersistenceInfo = record
+    Stream: Pointer;
+    EntriesOrSize: Integer;
+  end;
+  PPageStreamPersistenceInfo = ^TPageStreamPersistenceInfo;
+
   TPageCoordinate2D = record
     X, Y: Word;
   end;
+
   PPageCoordinate2D = ^TPageCoordinate2D;
 
   TPAGE_RendererInfo = record
@@ -42,6 +31,11 @@ type
     isSoftware: Boolean;
     isAccelerated: Boolean;
     isVSyncPresent: Boolean;
+  end;
+
+  TPageTextureManagerInfo = record
+    CurrentTextureInfoCount: Integer;
+    TextureInfoPersistence: TPageStreamPersistenceInfo;
   end;
 
   TPAGE_RendererInfos = array of TPAGE_RendererInfo;
@@ -181,6 +175,48 @@ const
 
   operator = (spritea : TPageSprite; spriteb : TPageSprite) b : boolean;
   operator = (tilerecorda: TPageTileRecord; tilerecordb: TPageTileRecord) b: boolean;
+
+type
+  IPageMemoryManager = interface
+    [SPageMemoryManager]
+    function DoInitialize: Boolean;
+    function FreeMemory(Reinitialize: Boolean = False): Boolean;
+
+    function PageMMGetMem(Size:ptruint): Pointer;
+    function PageMMFreeMem(p:pointer): ptruint;
+    function PageMMFreeMemSize(p:pointer;Size:ptruint): ptruint;
+    function PageMMAllocMem(Size:ptruint): Pointer;
+    function PageMMReAllocMem(var p:pointer;Size:ptruint): Pointer;
+    function PageMMMemSize(p:pointer): ptruint;
+    function PageMMGetHeapStatus: THeapStatus;
+    function PageMMGetFPCHeapStatus: TFPCHeapStatus;
+
+    property isInitialized: Boolean;
+    property Memory: Pointer;
+    property AddressableMemory: Pointer;
+  end;
+
+  IPageMemoryWrapper = interface
+    [SPageMemoryWrapper]
+
+    function GetSDLRenderer: PSDL_Renderer;
+    function GetRenderEngineInfo: TPageRenderEngineInfo;
+    function GetRenderEngineInfoPointer: Pointer;
+    function GetTextureManagerInfo: TPageTextureManagerInfo;
+    function GetTextureManagerInfoPointer: Pointer;
+
+    function VRAMMemoryManagerInterface: IPageMemoryManager;
+    function WRAMMemoryManagerInterface: IPageMemoryManager;
+
+    property SDLWindow: PSDL_Window;
+    property SDLRenderer: PSDL_Renderer read GetSDLRenderer;
+    property RenderEngineInfo: TPageRenderEngineInfo read GetRenderEngineInfo;
+    property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
+
+    property TextureManagerInfo: TPageTextureManagerInfo
+      read GetTextureManagerInfo;
+    property TextureManagerInfoPointer: Pointer read GetTextureManagerInfoPointer;
+  end;
 
 implementation
 

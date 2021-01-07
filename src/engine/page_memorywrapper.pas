@@ -21,13 +21,14 @@ type
   TPageVRAMLayout = packed record
     isInitializedMagicBytes: array[0..2] of Char;
     RenderEngine: TPageRenderEngineInfo;
+    TextureManagerInfo: TPageTextureManagerInfo;
     Tilemaps: TPageTilemaps;
     // Anything afterwards is memory managed by a memory manager
   end;
 
   { TPageMemoryWrapper }
 
-  TPageMemoryWrapper = class
+  TPageMemoryWrapper = class(TInterfacedObject, IPageMemoryWrapper)
   private
     FVRAMPointer: Pointer;
     FWRAMPointer: Pointer;
@@ -45,6 +46,8 @@ type
     function GetRenderOneFrame: Boolean;
     function GetSDLRenderer: PSDL_Renderer;
     function GetSDLWindow: PSDL_Window;
+    function GetTextureManagerInfo: TPageTextureManagerInfo;
+    function GetTextureManagerInfoPointer: Pointer;
     function GetTilemaps: TPageTilemaps;
     function GetVRAMInitializationStatus: Boolean;
     function GetVRAMPointer: Pointer;
@@ -65,6 +68,7 @@ type
     constructor Create;
 
     function VRAMMemoryManagerInterface: IPageMemoryManager;
+    function WRAMMemoryManagerInterface: IPageMemoryManager;
     function Bind(aWRAM: Pointer; aWRAMSize: Integer; aVRAM: Pointer;
       aVRAMSize: Integer): Boolean;
 
@@ -143,6 +147,18 @@ begin
     Result := TPageWRAMLayout(FWRAMPointer^).SDLWindow
   else
     Result := nil;
+end;
+
+function TPageMemoryWrapper.GetTextureManagerInfo: TPageTextureManagerInfo;
+begin
+  if FVRAMPointer <> nil then
+    Result := TPageVRAMLayout(FVRAMPointer^).TextureManagerInfo;
+  { TODO: Return empty info if pointer is nil }
+end;
+
+function TPageMemoryWrapper.GetTextureManagerInfoPointer: Pointer;
+begin
+  Result := @TPageVRAMLayout(FVRAMPointer^).TextureManagerInfo;
 end;
 
 function TPageMemoryWrapper.GetTilemaps: TPageTilemaps;
@@ -239,6 +255,13 @@ begin
   Result := nil;
   if Assigned(FVRAMMemMan) then
     Result := FVRAMMemMan;
+end;
+
+function TPageMemoryWrapper.WRAMMemoryManagerInterface: IPageMemoryManager;
+begin
+  Result := nil;
+  if Assigned(FWRAMMemMan) then
+    Result := FWRAMMemMan;
 end;
 
 function TPageMemoryWrapper.Bind(aWRAM: Pointer; aWRAMSize: Integer;
