@@ -382,7 +382,6 @@ end;
 
 function TPageImprovedMemoryManager.FreeFreeSpace(p: Pointer): ptruint;
 begin
-
   TSpaceBlock((p-SizeOf(TSpaceBlock))^).isFree := True;
   Result := TSpaceBlock((p-SizeOf(TSpaceBlock))^).NextBlockOffset;
 end;
@@ -524,7 +523,7 @@ end;
 function TPageImprovedMemoryManager.PageMMAllocMem(Size: ptruint): Pointer;
 begin
   Result := PageMMGetMem(Size);
-  FillByte(Result, Size, 0);
+  FillByte(Result^, Size, 0);
 end;
 
 function TPageImprovedMemoryManager.PageMMReAllocMem(var p: pointer; Size: ptruint
