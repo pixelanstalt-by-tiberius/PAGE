@@ -109,7 +109,7 @@ type
 
   TPAGE_EventType = (etNotification, etRequest);
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
-    psROM, psTextureManager);
+    psROM, psTextureManager, psMemoryWrapper);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
   TPAGE_EventMessage = (emEmpty, emDebugInfo, emString);
 

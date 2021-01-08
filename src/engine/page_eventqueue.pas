@@ -33,7 +33,11 @@ type
 
     procedure CastEvent(aEvent: TPAGE_Event; aString: PChar = ''); overload;
     procedure CastEventString(aEventType: TPAGE_EventType;
-      FromSubSystem, ToSubSystem: TPAGE_SubSystem; theString: PChar); overload;
+      FromSubSystem, ToSubSystem: TPAGE_SubSystem; theSeverity:
+      TPageEventSeverity; theString: PChar); overload;
+    procedure CastDebugVariable(aSenderSubSystem: TPAGE_SubSystem;
+      aVariableName: PChar; aVariableType: TPageDebugVariableType; aAddress:
+      Pointer; aSize: Integer);
 
     procedure AddEventListener(aEventListener: TPAGE_EventQueueListener;
       ListenToSubSystems: TPAGE_SubSystems);
@@ -79,6 +83,10 @@ begin
     StrDispose(FEvents[FNumEvents-1].EventMessageString);
   end;
 
+  if (FEvents[FNumEvents-1].EventMessage = emDebugInfo) and
+    (FEvents[FNumEvents-1].DebugInfoType = diVariable) then
+      StrDispose(FEvents[FNumEvents-1].DebugVariable.Name);
+
   FEvents[FNumEvents-1] := aEvent;
   FEvents[FNumEvents-1].EventTick := SDL_GetTicks;
   if StrLen(aString) > 0 then
@@ -89,7 +97,8 @@ begin
 end;
 
 procedure TPAGE_EventQueue.CastEventString(aEventType: TPAGE_EventType;
-  FromSubSystem, ToSubSystem: TPAGE_SubSystem; theString: PChar);
+  FromSubSystem, ToSubSystem: TPAGE_SubSystem; theSeverity: TPageEventSeverity;
+  theString: PChar);
 var
   theEvent: TPAGE_Event;
 begin
@@ -99,8 +108,29 @@ begin
     EventSenderSubSystem := FromSubSystem;
     EventReceiverSubSystem := ToSubSystem;
     EventMessage := emString;
+    EventSeverity := theSeverity;
   end;
   CastEvent(theEvent, theString);
+end;
+
+procedure TPAGE_EventQueue.CastDebugVariable(aSenderSubSystem: TPAGE_SubSystem;
+  aVariableName: PChar; aVariableType: TPageDebugVariableType;
+  aAddress: Pointer; aSize: Integer);
+var
+  newEvent: TPAGE_Event;
+begin
+  newEvent.EventType := etNotification;
+  newEvent.EventSenderSubsystem := aSenderSubSystem;
+  newEvent.EventReceiverSubsystem := psDebug;
+  newEvent.EventMessage := emDebugInfo;
+  newEvent.DebugInfoType := diVariable;
+
+  newEvent.DebugVariable.VariableType := aVariableType;
+  newEvent.DebugVariable.Name := StrNew(aVariableName);
+  newEvent.DebugVariable.Address := aAddress;
+  newEvent.DebugVariable.Size := aSize;
+
+  CastEvent(newEvent);
 end;
 
 { THIS METHOD IS NOT THREAD-SAFE! }
@@ -137,7 +167,8 @@ begin
       end;
     end;
     FNumEvents := 0;
-    { TODO: Free strings after dispatch }
+    { Strings will be disposed in CastEvent() once the casted event is
+      overwritten by a new event }
     LeaveCriticalSection(FEventCriticalSection);
   end;
 end;

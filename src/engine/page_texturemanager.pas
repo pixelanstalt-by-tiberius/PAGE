@@ -171,9 +171,9 @@ begin
     { TODO: Refactor if needed by memory manager }
     CheckAndEnlargeTextureArray;
 
-    TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
+    { TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
       TextureInfoPersistence.Stream+TextureCount*
-      SizeOf(TPageTextureInfo))^).TextureName := aTextureName;
+      SizeOf(TPageTextureInfo))^).TextureName := aTextureName; }
     //Textures[FCurrentTextureCount].TextureName := aTextureName;
     //Textures[FCurrentTextureCount].TexturePointer := aSDLTexture;
     TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
@@ -226,25 +226,14 @@ begin
 end;
 
 constructor TPageTextureManager.Create(aMemoryWrapper: IPageMemoryWrapper);
-var
-  event: TPage_Event;
 begin
   FMemoryWrapper := aMemoryWrapper;
 
-  event.EventType := etNotification;
-  event.EventSenderSubsystem := psTextureManager;
-  event.EventReceiverSubsystem := psDebug;
-  event.EventMessage := emDebugInfo;
-  event.DebugInfoType := diVariable;
+  gEventQueue.CastDebugVariable(psTextureManager, 'Texture Count', dvInteger,
+    @(TPageTextureManagerInfo(FMemoryWrapper.GetTextureManagerInfoPointer^).
+    CurrentTextureInfoCount), SizeOf((TPageTextureManagerInfo(FMemoryWrapper.
+    GetTextureManagerInfoPointer^).CurrentTextureInfoCount)));
 
-  event.DebugVariable.VariableType := dvInteger;
-  event.DebugVariable.Name := StrNew('Texture Count');
-  event.DebugVariable.Address := @(TPageTextureManagerInfo(FMemoryWrapper.
-    GetTextureManagerInfoPointer^).CurrentTextureInfoCount);
-  event.DebugVariable.Size := SizeOf((TPageTextureManagerInfo(FMemoryWrapper.
-    GetTextureManagerInfoPointer^).CurrentTextureInfoCount));
-
-  gEventQueue.CastEvent(event);
   FTextureLimit := -1;
 end;
 

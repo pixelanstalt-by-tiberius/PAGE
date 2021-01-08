@@ -61,7 +61,7 @@ begin
     begin
       case VariableType of
         dvPointer: lvVariableConsole.Items[intLoop].SubItems[3] :=
-                     Format('%x', [Address]);
+                     Format('%x', [ptrUInt(Address)]);
         dvInteger: lvVariableConsole.Items[intLoop].SubItems[3] :=
                      Format('%d', [Integer(Address^)]);
         dvByte: lvVariableConsole.Items[intLoop].SubItems[3] :=

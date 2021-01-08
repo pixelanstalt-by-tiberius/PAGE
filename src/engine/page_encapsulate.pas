@@ -43,6 +43,8 @@ type
     procedure ProcessDispatchedEvents;
     procedure MemoryWrapperAfterWRAMInitialized(Sender: TObject);
     procedure MemoryWrapperAfterVRAMInitialized(Sender: TObject);
+
+    procedure StartPerformanceTest;
   public
     property ROM: Pointer read FROM;
     property ROMSize: Integer read FROMSize;
@@ -116,6 +118,27 @@ begin
     FSpriteManager.AssignStream(intLoop, FRenderEngine.SpriteStreams[intLoop]);
 end;
 
+procedure TPixelanstaltGameEngine.StartPerformanceTest;
+var
+  intState: Integer = 0;
+begin
+  // Initialize Subsystems for performance testing
+
+  // Create and initialize tilemaps
+  // Initialize Render Engine
+
+  while not (FMemoryWrapper.ExitGameLoop) do
+  begin
+    ProcessDispatchedEvents;
+
+    case intState of
+      0:
+    end;
+
+    gEventQueue.DoDispatchEvents;
+  end;
+end;
+
 procedure EventQueueListenerMaster(
   aDispatchedEvent: TPAGE_Event);
 begin
@@ -161,7 +184,7 @@ begin
   Result := SDL_Init(SDL_INIT_EVERYTHING) = 0;
   if not Result then
   begin
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    gEventQueue.CastEventString(etNotification, psMain, psDebug, esError,
       PChar('Error initializing SDL: ' + SDL_GetError));
   end
   else
@@ -180,7 +203,7 @@ begin
       WindowFlags);
     if FMemoryWrapper.SDLWindow = nil then
     begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      gEventQueue.CastEventString(etNotification, psMain, psDebug, esError,
         PChar('Error creating window: ' + SDL_GetError));
       Result := False;
       gEventQueue.DoDispatchEvents;
@@ -197,7 +220,7 @@ begin
     if RenderSettings.EnableVSync then
       RendererFlags := RendererFlags or SDL_RENDERER_PRESENTVSYNC;
 
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    gEventQueue.CastEventString(etNotification, psMain, psDebug, esInfo,
       PChar('Creating renderer: ' +
       PAGERenderSettingsToString(RenderSettings)));
 
@@ -205,7 +228,7 @@ begin
       RenderSettings.RendererNumber, RendererFlags);
     if FMemoryWrapper.SDLRenderer = nil then
     begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      gEventQueue.CastEventString(etNotification, psMain, psDebug, esError,
         PChar('Error creating renderer: ' + SDL_GetError));
       Result := False;
       gEventQueue.DoDispatchEvents;
@@ -213,7 +236,7 @@ begin
     end;
 
     SDL_GetRendererInfo(FMemoryWrapper.SDLRenderer, @SDL_RendererInfo);
-    gEventQueue.CastEventString(etNotification, psMain, psDebug,
+    gEventQueue.CastEventString(etNotification, psMain, psDebug, esInfo,
       PChar('Renderer created: ' +
       PAGERenderSettingsToString(SDLRendererInfoToPAGERenderSettings(
       SDL_RendererInfo))));
@@ -221,7 +244,7 @@ begin
     if SDL_RenderSetLogicalSize(FMemoryWrapper.SDLRenderer,
       RenderSettings.RenderSizeWidth, RenderSettings.RenderSizeHeight) <> 0 then
     begin
-      gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      gEventQueue.CastEventString(etNotification, psMain, psDebug, esError,
         PChar('Failed to set logical render size: ' + SDL_GetError));
     end;
     SDL_RenderClear(FMemoryWrapper.SDLRenderer);
@@ -280,30 +303,42 @@ begin
   if FboolShowSplashScreen then
     Splashscreen;
 
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
-    PChar('Entering game loop. OverrideDeltaValue: ' +
-    FloatToStr(overrideDelta)));
-
-  while not (FMemoryWrapper.ExitGameLoop) do
+  if FROM = nil then
   begin
-    // Check input
+    // Fallback if not ROM is loaded
+    gEventQueue.CastEventString(etNotification, psMain, psDebug, esWarning,
+      PChar('Entering game loop WITHOUT ROM. Starting Performance Test. OverrideDeltaValue: ' +
+      FloatToStr(overrideDelta)));
+    StartPerformanceTest;
+  end
+  else
+    gEventQueue.CastEventString(etNotification, psMain, psDebug, esInfo,
+      PChar('Entering game loop. OverrideDeltaValue: ' +
+      FloatToStr(overrideDelta)));
 
-    ProcessDispatchedEvents;
-    // Do stuff
-      // -> load assets
-      // -> calculate physics
-      // -> render assets to vram
+    while not (FMemoryWrapper.ExitGameLoop) do
+    begin
+      // Check input
+      ProcessDispatchedEvents;
+      // Do stuff
+        // -> load assets
+        // -> calculate physics
+        // -> render assets to vram
 
-    // Render things
-      // -> render vram
+      // Render things
+        // -> render vram
 
-    // wait?
-    gEventQueue.DoDispatchEvents;
-    if (FMemoryWrapper.RenderOneFrame) then
-      Break;
-  end;
 
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
+      // wait?
+      gEventQueue.DoDispatchEvents;
+
+      { TODO: maybe query in while condition and reset within loop if
+              neccessary? }
+      if (FMemoryWrapper.RenderOneFrame) then
+        Break;
+    end;
+
+  gEventQueue.CastEventString(etNotification, psMain, psDebug, esInfo,
     'Exit game loop');
   gEventQueue.DoDispatchEvents;
 end;
@@ -425,10 +460,10 @@ begin
 
              { TODO: Debug only - strip! }
              //pchMessage :=
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('State 0->1 (' + IntToStr(SDL_GetTicks-intStateChange) +
                ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
            end;
@@ -470,10 +505,10 @@ begin
            begin
              intState := 2;
              { TODO: Debug only - strip! }
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('State 1->2 (' + IntToStr(SDL_GetTicks-intStateChange) +
                ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
            end;
@@ -515,10 +550,10 @@ begin
              alpha := 255;
              intState := 3;
              { TODO: Debug only - strip! }
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('State 2->3 (' + IntToStr(SDL_GetTicks-intStateChange) +
                ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
            end;
@@ -549,10 +584,10 @@ begin
              alpha := 255;
              intState := 4;
              { TODO: Debug only - strip! }
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('State 3->4 (' + IntToStr(SDL_GetTicks-intStateChange) +
                ' ms)'));
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+             gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
                PChar('Current delta ' + FloatToStr(delta) + '*1/10ms)'));
              intStateChange := 0;
            end;
@@ -565,7 +600,7 @@ begin
            SDL_Delay(1000);
            FboolShowSplashscreen := False;
            { TODO: Debug only - strip! }
-           gEventQueue.CastEventString(etNotification, psMain, psDebug,
+           gEventQueue.CastEventString(etNotification, psMain, psDebug, esDebug,
              PChar('State 4 done (' + IntToStr(SDL_GetTicks-intStateChange) +
              ' ms)'));
            intStateChange := 0;
@@ -579,7 +614,7 @@ begin
 
   FTextureManager.FreeAllTextures;
 
-  gEventQueue.CastEventString(etNotification, psMain, psDebug,
+  gEventQueue.CastEventString(etNotification, psMain, psDebug, esInfo,
     'Splashscreen done');
 end;
 

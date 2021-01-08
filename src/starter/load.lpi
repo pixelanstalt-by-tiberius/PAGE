@@ -88,6 +88,7 @@
         <Filename Value="varconsole.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmVarConsole"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit9>
     </Units>

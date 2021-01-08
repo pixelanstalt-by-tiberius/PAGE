@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, PageAPI, SDL2, page_memorymanager,
-  page_improvedmemorymanager, page_dummymemorymanager;
+  page_improvedmemorymanager, page_dummymemorymanager, page_EventQueue;
 
 type
   TPageWRAMLayout = packed record
@@ -267,6 +267,15 @@ end;
 function TPageMemoryWrapper.Bind(aWRAM: Pointer; aWRAMSize: Integer;
   aVRAM: Pointer; aVRAMSize: Integer): Boolean;
 begin
+  gEventQueue.CastDebugVariable(psMemoryWrapper, 'WRAM', dvPointer, aWRAM,
+    SizeOf(aWRAM));
+  gEventQueue.CastDebugVariable(psMemoryWrapper, 'WRAM Size', dvInteger,
+    @FWRAMSize, SizeOf(FWRAMSize));
+  gEventQueue.CastDebugVariable(psMemoryWrapper, 'VRAM', dvPointer, aVRAM,
+    SizeOf(aWRAM));
+  gEventQueue.CastDebugVariable(psMemoryWrapper, 'VRAM Size', dvInteger,
+    @FVRAMSize, SizeOf(FVRAMSize));
+
   FWRAMPointer := aWRAM;
   FWRAMSize := aWRAMSize;
   if isWRAMInitialized then
