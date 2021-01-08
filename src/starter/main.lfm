@@ -1,7 +1,7 @@
 object frmMain: TfrmMain
-  Left = 211
+  Left = 346
   Height = 296
-  Top = 309
+  Top = 424
   Width = 596
   Caption = 'PaGE LoaD'
   ClientHeight = 296

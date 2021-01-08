@@ -19,7 +19,7 @@ type
     FBackgroundStyle: TBrushStyle;
 
     FTextBuffer: TStringList;
-    FTextColor, FTextErrorColor, FTextWarningColor: TColor;
+    FTextColor, FTextErrorColor, FTextWarningColor, FTextDebugColor: TColor;
     FHighlight: Integer;
 
     FCanvas: TCanvas;
@@ -176,13 +176,14 @@ begin
           FHighlight, 255), Min(Green(FCanvas.Font.Color)+FHighlight, 255),
           Min(Blue(FCanvas.Font.Color)+FHighlight, 255));
       end;
-    'norm', 'error', 'warn':
+    'norm', 'error', 'warn', 'debug':
       begin
         FCanvas.Font.Style := [];
         case LowerCase(Command) of
           'norm': FCanvas.Font.Color := FTextColor;
           'warn': FCanvas.Font.Color := FTextWarningColor;
           'error': FCanvas.Font.Color := FTextErrorColor;
+          'debug': FCanvas.Font.Color := FTextDebugColor;
         end;
       end;
   end;
@@ -252,6 +253,7 @@ begin
   FTextColor := RGBToColor(0, 200, 0);
   FTextErrorColor := RGBToColor(200, 0, 0);
   FTextWarningColor := RGBToColor(200, 200, 0);
+  FTextDebugColor := RGBToColor(0, 200, 200);
   FHighlight := 55;
   FTextBuffer := TStringList.Create;
 end;

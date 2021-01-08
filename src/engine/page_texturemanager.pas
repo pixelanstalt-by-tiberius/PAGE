@@ -5,7 +5,7 @@ unit page_texturemanager;
 interface
 
 uses
-  Classes, SysUtils, SDL2, PageAPI, SDL2_Image;
+  Classes, SysUtils, SDL2, PageAPI, SDL2_Image, page_eventqueue;
 
 { TODO: Reference count for textures }
 { TODO: "Texture hash"? }
@@ -226,13 +226,26 @@ begin
 end;
 
 constructor TPageTextureManager.Create(aMemoryWrapper: IPageMemoryWrapper);
+var
+  event: TPage_Event;
 begin
   FMemoryWrapper := aMemoryWrapper;
+
+  event.EventType := etNotification;
+  event.EventSenderSubsystem := psTextureManager;
+  event.EventReceiverSubsystem := psDebug;
+  event.EventMessage := emDebugInfo;
+  event.DebugInfoType := diVariable;
+
+  event.DebugVariable.VariableType := dvInteger;
+  event.DebugVariable.Name := StrNew('Texture Count');
+  event.DebugVariable.Address := @(TPageTextureManagerInfo(FMemoryWrapper.
+    GetTextureManagerInfoPointer^).CurrentTextureInfoCount);
+  event.DebugVariable.Size := SizeOf((TPageTextureManagerInfo(FMemoryWrapper.
+    GetTextureManagerInfoPointer^).CurrentTextureInfoCount));
+
+  gEventQueue.CastEvent(event);
   FTextureLimit := -1;
-  //SetLength(FTextShadowArray, 0);
-  //FTextures := @FTextShadowArray;
-  {$warning SetLength methods etc. must be changed for use with provided
-            memory manager }
 end;
 
 destructor TPageTextureManager.Destroy;

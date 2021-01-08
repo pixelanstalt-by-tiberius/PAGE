@@ -116,7 +116,8 @@ begin
   LastInfo := (Sender as TDebugDataHandler).Infos[(Sender as
     TDebugDataHandler).InfoCount-1];
   case LastInfo.Severity of
-    isDebug: strSeverity := 'Debug';
+    isNormal: strSeverity := '';
+    isDebug: strSeverity := '\Debug Debug \Norm';
     isWarning: strSeverity := '\Warn Warning \Norm';
     isError: strSeverity := '\Error Error \Norm';
     isException: strSeverity := '\Error \High Exception \Norm';

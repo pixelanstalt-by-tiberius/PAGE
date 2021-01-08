@@ -5,14 +5,14 @@ unit DebugDataHandler;
 interface
 
 uses
-  Classes, SysUtils, DateUtils, PAGEAPI;
+  Classes, SysUtils, DateUtils, PAGEAPI, typinfo;
 
 const
   EVENT_QUEUE_SIZE = High(Word);
   INFO_INCREASE_AMOUNT = 1024;
 
 type
-  TInfoSeverity = (isDebug, isWarning, isError, isException);
+  TInfoSeverity = (isDebug, isNormal, isWarning, isError, isException);
 
   TInfo = record
     Timestamp: Int64;
@@ -154,7 +154,7 @@ end;
 procedure TDebugDataHandler.UpdateDispatchedEventQueue;
 var
   intLoop, EventHead, EventTail: Integer;
-  strEventType: String;
+  strEventType, strVariableType: String;
 begin
   // Exit update if no event was added
   if (FDispatchedEventsTail = -1) or
@@ -174,11 +174,28 @@ begin
         etRequest: strEventType := 'Request';
         etNotification: strEventType := 'Notification';
       end;
-      if FDispatchedEvents[intLoop].EventMessage = emString then
-        AddInfo(Format('EventQueue (%s)', [strEventType]),
+      case FDispatchedEvents[intLoop].EventMessage of
+        emDebugInfo:
+          case FDispatchedEvents[intLoop].DebugInfoType of
+            diString: AddInfo('EventQueue Debug Info',
+                        Format('%s (@Tick %d)', [
+                        FDispatchedEvents[intLoop].DebugString,
+                        FDispatchedEvents[intLoop].EventTick]), isDebug);
+            diVariable: AddInfo('EventQueue Debug Variable',
+                          Format('%s: [%s] $%x @%d', [
+                          FDispatchedEvents[intLoop].DebugVariable.Name,
+                          GetEnumName(TypeInfo(TPageDebugVariableType),
+                            Ord(FDispatchedEvents[intLoop].DebugVariable.
+                            VariableType)), PtrUInt(FDispatchedEvents[intLoop].
+                            DebugVariable.Address), FDispatchedEvents[intLoop].
+                            DebugVariable.Size]), isDebug);
+          end;
+
+        emString: AddInfo(Format('EventQueue Raw String (%s)', [strEventType]),
           Format('%s (@Tick %d)', [
           FDispatchedEvents[intLoop].EventMessageString,
-          FDispatchedEvents[intLoop].EventTick]), isDebug);
+          FDispatchedEvents[intLoop].EventTick]), isNormal);
+      end;
     end
   else
   begin
@@ -209,6 +226,7 @@ begin
     end;
   end;
 
+  { TODO: Dispose strings }
   EnterCriticalSection(gEventDispatchCriticalSection);
   FDispatchedEventsTail := EventHead;
   LeaveCriticalSection(gEventDispatchCriticalSection);
@@ -232,6 +250,18 @@ begin
     gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
       FDispatchedEventsHead].EventMessageString := StrNew(aDispatchedEvent.
       EventMessageString);
+  end;
+
+  if (aDispatchedEvent.EventMessage = emDebugInfo) then
+  begin
+    case aDispatchedEvent.DebugInfoType of
+      diString: gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
+        FDispatchedEventsHead].DebugString := StrNew(aDispatchedEvent.
+        DebugString);
+      diVariable: gDebugDataHandler.FDispatchedEvents[gDebugDataHandler.
+        FDispatchedEventsHead].DebugVariable.Name := StrNew(aDispatchedEvent.
+        DebugVariable.Name);
+    end;
   end;
 
   gDebugDataHandler.FDispatchedEventsHead :=

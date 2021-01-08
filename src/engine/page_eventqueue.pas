@@ -137,6 +137,7 @@ begin
       end;
     end;
     FNumEvents := 0;
+    { TODO: Free strings after dispatch }
     LeaveCriticalSection(FEventCriticalSection);
   end;
 end;

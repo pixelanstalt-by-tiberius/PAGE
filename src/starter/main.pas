@@ -8,7 +8,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
-  PAGEAPI, APIHelper, SDL2;
+  PAGEAPI, APIHelper, SDL2, varconsole;
 
 {$include ../PAGEconst.inc}
 
@@ -303,7 +303,9 @@ begin
 
     if Result then
     begin
-      FPAGEAPI.PAGEAddEventQueueListener(@EventQueueDispatch, [psDebug]);
+      FPAGEAPI.PAGEAddEventQueueListener(@DebugDataHandler.EventQueueDispatch, [psDebug]);
+      FPAGEAPI.PAGEAddEventQueueListener(@VarConsole.frmVarConsole.EventQueueDispatch,
+        [psDebug]);
       frmDebugConsole.CastEvent := FPAGEAPI.PAGECastEvent;
     end;
   end;
@@ -317,6 +319,7 @@ begin
     lbldPageBindStatus.Caption := 'Bound';
     lbldPageBindStatus.Font.Color := clGreen;
     btnPageInitializeFinalize.Enabled := True;
+    frmVarConsole.Show;
   end
   else
   begin

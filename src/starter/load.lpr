@@ -9,7 +9,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, main, pageinit, DebugConsole, DebugDataHandler, ConsoleComponent,
-  PAGEAPI, APIHelper
+  PAGEAPI, APIHelper, varconsole
   { you can add units after this };
 
 {$R *.res}
@@ -21,6 +21,7 @@ begin
   Application.CreateForm(TfrmMain, frmMain);
   Application.CreateForm(TfrmPageInit, frmPageInit);
   Application.CreateForm(TfrmDebugConsole, frmDebugConsole);
+  Application.CreateForm(TfrmVarConsole, frmVarConsole);
   Application.Run;
 end.
 

@@ -111,15 +111,42 @@ type
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
     psROM, psTextureManager);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
-  TPAGE_EventMessage = (emEmpty, emString);
+  TPAGE_EventMessage = (emEmpty, emDebugInfo, emString);
+
+  TPageEventSeverity = (esNotSet, esDebug, esInfo, esWarning, esError,
+    esException);
+
+  TPageDebugInfoType = (diString, diVariable);
+
+  TPageEventDebugInfo = record
+    InfoType: TPageDebugInfoType;
+  end;
+
+  TPageDebugVariableType = (dvPointer, dvByte, dvWord, dvDWord, dvInteger,
+    dvInt64, dvUInt64, dvPChar);
+
+  TPageDebugVariable = record
+    Name: PChar;
+    Address: Pointer;
+    Size: ptruint;
+    VariableType: TPageDebugVariableType;
+  end;
 
   TPAGE_Event = record
     EventType: TPAGE_EventType;
     EventTick: UInt64;
     EventSenderSubsystem: TPAGE_SubSystem;
     EventReceiverSubsystem: TPAGE_SubSystem;
-    EventMessage: TPAGE_EventMessage;
-    EventMessageString: PChar;
+    case EventMessage: TPAGE_EventMessage of
+      emDebugInfo: (
+        case DebugInfoType: TPageDebugInfoType of
+          diString: (
+            DebugString: PChar; );
+          diVariable: (
+            DebugVariable: TPageDebugVariable; )
+        );
+      emString: (EventSeverity: TPageEventSeverity; EventMessageString: PChar);
+      emEmpty: ();
   end;
 
   TPAGE_EventQueueListener = procedure(aDispatchedEvent: TPAGE_Event);

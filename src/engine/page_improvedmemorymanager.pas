@@ -5,7 +5,7 @@ unit page_improvedmemorymanager;
 interface
 
 uses
-  Classes, SysUtils, page_memorymanager, PageApi, Math;
+  Classes, SysUtils, page_memorymanager, PageApi, Math, page_eventqueue;
 
 type
   TAllocationBitmap = bitpacked record

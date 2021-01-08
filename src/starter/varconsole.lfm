@@ -1,0 +1,50 @@
+object frmVarConsole: TfrmVarConsole
+  Left = 231
+  Height = 240
+  Top = 561
+  Width = 445
+  Caption = 'Variable Console'
+  ClientHeight = 240
+  ClientWidth = 445
+  LCLVersion = '2.0.10.0'
+  object lvVariableConsole: TListView
+    Left = 0
+    Height = 240
+    Top = 0
+    Width = 445
+    Align = alClient
+    Columns = <    
+      item
+        Caption = 'Name'
+        Width = 150
+      end    
+      item
+        Caption = 'Address'
+      end    
+      item
+        Caption = 'Type'
+      end    
+      item
+        Caption = 'Size'
+      end    
+      item
+        Caption = 'Value'
+        Width = 130
+      end>
+    RowSelect = True
+    TabOrder = 0
+    ViewStyle = vsReport
+  end
+  object RefreshEvents: TTimer
+    Interval = 5000
+    OnTimer = RefreshEventsTimer
+    Left = 28
+    Top = 16
+  end
+  object RefreshVariableValues: TTimer
+    Interval = 200
+    OnTimer = RefreshVariableValuesTimer
+    Left = 156
+    Top = 18
+  end
+end
