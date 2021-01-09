@@ -21,6 +21,8 @@ resource_creator:
 resources: resource_creator
 	# compile resource-pas for the splashscreen
 	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -fres/page.png -ores/splash_res.pas
+	# compile resource-pas for manaspace bitmap font
+	bin/debug/tools/irc -fres/manaspace.png -bres/manaspace.fnt -ores/font_manaspace.pas
 
 engine:
 	lazbuild $(lazflags) src/engine/PAGE.lpi

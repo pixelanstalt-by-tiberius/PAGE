@@ -8,14 +8,19 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, StrUtils;
 
 var
   // Filenames (full path) of resource files are stored here
   FilesToProcess: array of String;
+  // Filenames (full path) of BMFont-files are stored here
+  fntToProcess: array of String;
+
   // Identifiers (names) for the constants are stored in this string list by the
   // CheckAndAddIdentifier @link(CheckAndAddIdentifier) method
   Identifiers: TStringList;
+
+  FNTIdentifiers: TStringList;
   // Filename of the output file
   OutputFilename: String;
   // Will be filled with the pas' contents during program execution
@@ -36,6 +41,7 @@ var
   If the identifier already exists, the function will NOT add the identifier and
   will return FALSE. }
 function CheckAndAddIdentifier(Filename: String): Boolean;
+function CheckAndAddFNTIdentifier(Filename: String): Boolean;
 function ProcessParameters: Boolean;
 procedure PrintWelcomeMessage(PrintHelp: Boolean = False);
 procedure InitOutputFile;
@@ -43,7 +49,22 @@ function ComposeIdentifiers: String;
 procedure DoneOutputFile;
 function ComposeByteArray(var Stream: TStream): String;
 procedure ProcessInputFile(Filename: String; Identifier: String);
+procedure ProcessFNT(FNTFilename: String; Identifier: String);
+function ToRect(strRect: String): TRect;
+function GetIntValue(Content, ParamName: String): Integer;
+function GetStrValue(Content, ParamName: String): String;
 
+const
+  CharInfoDefinition =
+    '  TFNTCharInfo = record' +
+    '    CharID: char;' +
+    '    X, Y, W, H: Word;' +
+    '  end;';
+
+  CharInfoTemplate = ('( CharID: #%d; X: %d; Y: %d; W: %d; H: %d)');
+
+var
+  boolFontDef: Boolean;
 
 implementation
 
@@ -60,6 +81,22 @@ begin
   else
   begin
     Identifiers.Add(LowerCase(strIdentifier));
+    Result := True;
+  end;
+end;
+
+function CheckAndAddFNTIdentifier(Filename: String): Boolean;
+var
+  strIdentifier: String;
+begin
+  Result := False;
+  strIdentifier := 'bmf_' + ExtractFileName(ChangeFileExt(Filename, ''));
+
+  if FNTIdentifiers.IndexOf(LowerCase(strIdentifier)) <> -1 then
+    Result := False
+  else
+  begin
+    FNTIdentifiers.Add(LowerCase(strIdentifier));
     Result := True;
   end;
 end;
@@ -89,6 +126,24 @@ begin
                 Halt(3);
               end;
             end;
+      '-b': begin
+              boolFontDef := True;
+              SetLength(fntToProcess, Length(fntToProcess)+1);
+              fntToProcess[High(fntToProcess)] :=
+                Copy(ParamStr(intParamLoop), 3, Length(
+                ParamStr(intParamLoop))-2);
+              if fntToProcess[High(fntToProcess)][1] = '"' then
+                fntToProcess[High(fntToProcess)] := Copy(
+                  fntToProcess[High(fntToProcess)], 3,
+                  Length(fntToProcess[High(fntToProcess)])-2);
+              if not CheckAndAddFNTIdentifier(fntToProcess[High(
+                fntToProcess)]) then
+              begin
+                WriteLn(Format('Failed: Duplicate identifier for file "%s"',
+                  [FilesToProcess[High(FilesToProcess)]]));
+                Halt(3);
+              end;
+            end;
       '-o': OutputFilename := Copy(ParamStr(intParamLoop), 3, Length(
               ParamStr(intParamLoop))-2);
     end;
@@ -107,11 +162,14 @@ begin
   WriteLn;
   if PrintHelp then
   begin
-    WriteLn(' irc -fFILENAME [-fFILENAME2] ... -oOUTPUT');
+    WriteLn(' irc -fFILENAME [-fFILENAME2] [-bFNTFILE] ... -oOUTPUT');
     WriteLn;
     WriteLn('The Inline Resource Creator creates a .pas-file as OUTPUT which ');
     WriteLn(' will contain the input files referenced by FILENAME as raw data');
-    WriteLn(' in arrays of byte');
+    WriteLn(' in arrays of byte.');
+    WriteLn('If a .fnt-file referenced by FNTFILE is given, the file will be');
+    WriteLn(' parsed and it''s contents will be stored in an array with font');
+    WriteLn(' information ');
   end;
 end;
 
@@ -122,6 +180,12 @@ begin
     OutputFilename), '') + ';');
   OutputFileContents.Add('');
   OutputFileContents.Add('interface');
+  if boolFontDef then
+  begin
+    OutputFileContents.Add('');
+    OutputFileContents.Add('type');
+    OutputFileContents.Add(CharInfoDefinition);
+  end;
   OutputFileContents.Add('');
   OutputFileContents.Add('const');
 end;
@@ -199,6 +263,68 @@ begin
     WriteLn(Format('Failed to process "%s"', [Filename]));
     Halt(2);
   end;
+end;
+
+procedure ProcessFNT(FNTFilename: String; Identifier: String);
+var
+  InputFile, Chars: TStringList;
+  intLines: Integer;
+  pding: TRect;
+begin
+  InputFile := TStringList.Create;
+  InputFile.LoadFromFile(FNTFilename);
+  Chars := TStringList.Create;
+  Chars.StrictDelimiter := True;
+  Chars.Delimiter := ',';
+
+  for intLines := 0 to InputFile.Count-1 do
+  begin
+    case LowerCase(ExtractDelimited(1, InputFile.Strings[intLines], [' '])) of
+      'info':
+        begin
+          pding := ToRect(GetStrValue(InputFile.Strings[intLines], 'padding'));
+        end;
+      'char':
+        begin
+          Chars.Add(Format(CharInfoTemplate, [
+            GetIntValue(InputFile.Strings[intLines], 'id'),
+            GetIntValue(InputFile.Strings[intLines], 'x'),
+            GetIntValue(InputFile.Strings[intLines], 'y'),
+            GetIntValue(InputFile.Strings[intLines], 'width'),
+            GetIntValue(InputFile.Strings[intLines], 'height')]));
+        end;
+    end;
+  end;
+
+  OutputFileContents.Add(Format('%s: array[0..%d] of TFNTCharInfo = (%s);',
+    [Identifier, Chars.Count-1, Chars.DelimitedText]));
+  OutputFileContents.Add('');
+
+  Chars.Free;
+  InputFile.Free;
+end;
+
+function ToRect(strRect: String): TRect;
+begin
+  Result.Left := StrToInt(ExtractDelimited(1, strRect, [',']));
+  Result. Top := StrToInt(ExtractDelimited(2, strRect, [',']));
+  Result.Right := StrToInt(ExtractDelimited(3, strRect, [',']));
+  Result.Bottom := StrToInt(ExtractDelimited(4, strRect, [',']));
+end;
+
+function GetIntValue(Content, ParamName: String): Integer;
+begin
+  Result := StrToInt(GetStrValue(Content, ParamName));
+end;
+
+function GetStrValue(Content, ParamName: String): String;
+var
+  paramStart, paramEnd, valueStart: Integer;
+begin
+  paramStart := Pos(ParamName, Content);
+  paramEnd := PosEx(' ', Content, paramStart);
+  valueStart := PosEx('=', Content, paramStart)+1;
+  Result := Copy(Content, valueStart, paramEnd-valueStart);
 end;
 
 

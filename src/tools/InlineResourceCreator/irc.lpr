@@ -16,6 +16,8 @@ begin
   SetLength(FilesToProcess, 0);
   OutputFilename := '';
   Identifiers := TStringList.Create;
+  FNTIdentifiers := TStringList.Create;
+  boolFontDef := False;
 
   PrintWelcomeMessage(ParamCount <= 1);
 
@@ -26,6 +28,7 @@ begin
   end;
 
   WriteLn(Format('%d input file(s) to process', [Length(FilesToProcess)]));
+  WriteLn(Format('%d FNT-file(s) to process', [Length(FNTToProcess)]));
 
   InitOutputFile;
   for intInputLoop := 0 to High(FilesToProcess) do
@@ -34,9 +37,16 @@ begin
       FilesToProcess[intInputLoop]]));
     ProcessInputFile(FilesToProcess[intInputLoop], Identifiers[intInputLoop]);
   end;
+  for intInputLoop := 0 to High(FNTToProcess) do
+  begin
+    WriteLn(Format('Processing FNT #%d (%s)', [intInputLoop+1,
+      FNTToProcess[intInputLoop]]));
+    ProcessFNT(FNTToProcess[intInputLoop], FNTIdentifiers[intInputLoop]);
+  end;
   DoneOutputFile;
   OutputFileContents.SaveToFile(OutputFilename);
   OutputFileContents.Free;
   Identifiers.Free;
+  FNTIdentifiers.Free;
 end.
 
