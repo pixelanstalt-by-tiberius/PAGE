@@ -33,11 +33,12 @@ type
     { TODO: Move FCurrentTextureCount to PersistenceInfo }
     FTextureLimit: Integer;
 
-    function GetPageTextureInfo(Index: Integer): TPageTextureInfo;
+    function GetPageTextureInfo(Index: TPageTextureID): TPageTextureInfo;
     function GetTextureCount: Integer;
     function GetTextureLimit: Integer;
     function GetTexturePointer(Index: Integer): PSDL_Texture;
-    procedure SetPageTextureInfo(Index: Integer; AValue: TPageTextureInfo);
+    procedure SetPageTextureInfo(Index: TPageTextureID; AValue: TPageTextureInfo
+      );
     procedure SetTextureLimit(AValue: Integer);
   protected
     //FTextureNameSearchTable: array[0..26] of array of Integer;
@@ -47,8 +48,7 @@ type
     function CanAddNewTexture: Boolean; inline;
     procedure CheckAndEnlargeTextureArray; //inline;
 
-    function AddTexture(aSDLTexture: PSDL_Texture;
-      aTextureName: String): Integer;
+
 
     function GetTextureIndexFromSearchTable(aTextureName: String): Integer;
     function GetTextureIndexByLinearSearch(aTextureName: String): Integer;
@@ -60,15 +60,16 @@ type
     property TextureLimit: Integer read GetTextureLimit write SetTextureLimit;
     property TexturePointers[Index: Integer]: PSDL_Texture
       read GetTexturePointer;
-    property Textures[Index: Integer]: TPageTextureInfo read GetPageTextureInfo
+    property Textures[Index: TPageTextureID]: TPageTextureInfo read GetPageTextureInfo
       write SetPageTextureInfo;
 
     constructor Create(aMemoryWrapper: IPageMemoryWrapper);
     destructor Destroy; override;
-
+    function AddTexture(aSDLTexture: PSDL_Texture;
+      aTextureName: String = ''): Integer;
     function AddTextureFromInlineResource(aResource: Pointer;
       aResourceSize: Integer; aResourceType: TPageInlineResourceType;
-      aTextureName: String = ''): Integer;
+      aTextureName: String = ''): TPageTextureID;
     function FreeTexture(Index: Integer): Boolean;
     function FreeAllTextures: Boolean;
     function GetTextureByName(aTextureName: String): PSDL_Texture;
@@ -85,7 +86,7 @@ implementation
 
 { TPageTextureManager }
 
-function TPageTextureManager.GetPageTextureInfo(Index: Integer
+function TPageTextureManager.GetPageTextureInfo(Index: TPageTextureID
   ): TPageTextureInfo;
 begin
   Result := TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
@@ -109,7 +110,7 @@ begin
     Result := Textures[Index].TexturePointer;
 end;
 
-procedure TPageTextureManager.SetPageTextureInfo(Index: Integer;
+procedure TPageTextureManager.SetPageTextureInfo(Index: TPageTextureID;
   AValue: TPageTextureInfo);
 begin
   { TODO: Check boundaries }
@@ -246,7 +247,7 @@ end;
 
 function TPageTextureManager.AddTextureFromInlineResource(aResource: Pointer;
   aResourceSize: Integer; aResourceType: TPageInlineResourceType;
-  aTextureName: String): Integer;
+  aTextureName: String): TPageTextureID;
 var
   texture: PSDL_Texture;
 begin
