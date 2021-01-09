@@ -314,7 +314,7 @@ begin
         Tilemap^.Map[intX, intY].Flags);
     end;
   end;
-
+  SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
   SDL_SetRenderTarget(FMemoryWrapper.SDLRenderer, OldRenderTarget);
 end;
 
