@@ -107,6 +107,15 @@ type
     Alpha: Byte;
   end;
 
+  TFNTCharInfo = record
+    CharID: char;
+    X, Y, W, H: Word;
+    xOffset, yOffset: Word;
+  end;
+
+  TFNTCharInfoArray = array of TFNTCharInfo;
+
+
   TPAGE_EventType = (etNotification, etRequest);
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
     psROM, psTextureManager, psMemoryWrapper);
