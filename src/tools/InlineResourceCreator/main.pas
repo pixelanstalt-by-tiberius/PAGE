@@ -56,12 +56,13 @@ function GetStrValue(Content, ParamName: String): String;
 
 const
   CharInfoDefinition =
-    '  TFNTCharInfo = record' +
-    '    CharID: char;' +
-    '    X, Y, W, H: Word;' +
+    '  TFNTCharInfo = record' + #13#10 +
+    '    CharID: char;' + #13#10 +
+    '    X, Y, W, H: Word;' + #13#10 +
+    '    xOffset, yOffset: Word;' + #13#10 +
     '  end;';
 
-  CharInfoTemplate = ('( CharID: #%d; X: %d; Y: %d; W: %d; H: %d)');
+  CharInfoTemplate = ('( CharID: #%d; X: %d; Y: %d; W: %d; H: %d; xOffset: %d; yOffset: %d)');
 
 var
   boolFontDef: Boolean;
@@ -291,7 +292,9 @@ begin
             GetIntValue(InputFile.Strings[intLines], 'x'),
             GetIntValue(InputFile.Strings[intLines], 'y'),
             GetIntValue(InputFile.Strings[intLines], 'width'),
-            GetIntValue(InputFile.Strings[intLines], 'height')]));
+            GetIntValue(InputFile.Strings[intLines], 'height'),
+            GetIntValue(InputFile.Strings[intLines], 'xoffset'),
+            GetIntValue(InputFile.Strings[intLines], 'yoffset')]));
         end;
     end;
   end;
@@ -306,10 +309,10 @@ end;
 
 function ToRect(strRect: String): TRect;
 begin
-  Result.Left := StrToInt(ExtractDelimited(1, strRect, [',']));
-  Result. Top := StrToInt(ExtractDelimited(2, strRect, [',']));
-  Result.Right := StrToInt(ExtractDelimited(3, strRect, [',']));
-  Result.Bottom := StrToInt(ExtractDelimited(4, strRect, [',']));
+  Result.Top := StrToInt(ExtractDelimited(1, strRect, [',']));
+  Result. Right := StrToInt(ExtractDelimited(2, strRect, [',']));
+  Result.Bottom := StrToInt(ExtractDelimited(3, strRect, [',']));
+  Result.Left := StrToInt(ExtractDelimited(4, strRect, [',']));
 end;
 
 function GetIntValue(Content, ParamName: String): Integer;
