@@ -201,7 +201,7 @@ begin
   SrcRect.h := FMemoryWrapper.RenderEngineInfo^.RenderingDimension.Y;
 
   SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
-  for intTilemapLoop := 0 to 0 do // TilemapCount-1 do
+  for intTilemapLoop := 0 to TilemapCount-1 do
   begin
     if not FTilemaps[intTilemapLoop]^.isValid then
     begin
