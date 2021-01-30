@@ -59,7 +59,7 @@ const
     '  TFNTCharInfo = record' + #13#10 +
     '    CharID: char;' + #13#10 +
     '    X, Y, W, H: Word;' + #13#10 +
-    '    xOffset, yOffset: Word;' + #13#10 +
+    '    xOffset, yOffset: SmallInt;' + #13#10 +
     '  end;';
 
   CharInfoTemplate = ('( CharID: #%d; X: %d; Y: %d; W: %d; H: %d; xOffset: %d; yOffset: %d)');

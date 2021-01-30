@@ -22,7 +22,10 @@ resources: resource_creator
 	# compile resource-pas for the splashscreen
 	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -fres/page.png -ores/splash_res.pas
 	# compile resource-pas for manaspace bitmap font
-	bin/debug/tools/irc -fres/manaspace.png -bres/manaspace.fnt -ores/font_manaspace.pas
+	bin/debug/tools/irc -fres/fonts/manaspace16.png -bres/fonts/manaspace16.fnt -ores/fonts/font_manaspace16.pas
+	bin/debug/tools/irc -fres/fonts/manaspace8.png -bres/fonts/manaspace8.fnt -ores/fonts/font_manaspace8.pas
+	# compile resource-pas for dogica bitmap font
+	bin/debug/tools/irc -fres/fonts/dogica8.png -bres/fonts/dogica8.fnt -ores/fonts/font_dogica8.pas
 
 engine:
 	lazbuild $(lazflags) src/engine/PAGE.lpi
@@ -50,3 +53,4 @@ clean:
 	rm -rf tests/engine/lib
 	rm -rf src/tools/InlineResourceCreator/lib
 	rm -rf res/*.pas
+	rm -rf res/fonts/*.pas
