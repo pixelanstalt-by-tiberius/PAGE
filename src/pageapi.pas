@@ -12,6 +12,8 @@ const
   SPageMemoryWrapper = '{E24636B0-465A-4835-BFAD-60D699D43235}';
   SPageMemoryManager = '{E42B8EC7-85F8-4713-993E-646897E2BDFA}';
 
+  PAGE_MAX_TILEMAPS = 6;
+
 // Structures
 type
   TPageStreamPersistenceInfo = record
@@ -67,19 +69,14 @@ type
   end;
   PPageTileMapInfo = ^TPageTileMapInfo;
 
-  TPageTilemaps = packed record
-    Tilemap1: TPageTilemapInfo;
-    Tilemap2: TPageTilemapInfo;
-    Tilemap3: TPageTilemapInfo;
-    Tilemap4: TPageTilemapInfo;
-    Tilemap5: TPageTilemapInfo;
-    Tilemap6: TPageTilemapInfo;
-  end;
+  TPageTilemaps = array[0..PAGE_MAX_TILEMAPS] of TPageTilemapInfo;
+
+  { TPageRenderEngineInfo }
 
   TPageRenderEngineInfo = packed record
-    TilemapCount: Byte;
-    RenderingDimension: TPageCoordinate2D; // = Display Dimension
     CanvasDimension: TPageCoordinate2D;
+    RenderingDimension: TPageCoordinate2D;
+    TilemapCount: Byte;
     TileDimension: TPageCoordinate2D;
     SpriteDimension: TPageCoordinate2D;
   end;
@@ -118,7 +115,7 @@ type
 
   TPAGE_EventType = (etNotification, etRequest);
   TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
-    psROM, psTextureManager, psMemoryWrapper);
+    psROM, psTextureManager, psMemoryWrapper, psMemoryManager);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
   TPAGE_EventMessage = (emEmpty, emDebugInfo, emString);
 
@@ -188,10 +185,7 @@ const
   PAGE_WRAM_MAGIC_BYTES: array[0..2] of Char = ('P', 'G', 'R');
   PAGE_VRAM_MAGIC_BYTES: array[0..2] of Char = ('P', 'G', 'V');
 
-  PAGE_MAX_TILEMAPS = 6;
-
-  PAGE_EMPTY_RENDERENGINEINFO: TPageRenderEngineInfo = (TilemapCount: 0;
-    RenderingDimension : (X: 0; Y: 0); CanvasDimension: (X: 0; Y: 0);
+  PAGE_EMPTY_RENDERENGINEINFO: TPageRenderEngineInfo = (CanvasDimension: (X: 0; Y: 0); RenderingDimension: (X: 0; Y: 0); TilemapCount: 0;
     TileDimension : (X: 0; Y: 0); SpriteDimension: (X: 0; Y: 0));
 
   EMPTY_SPRITE: TPageSprite = (TextureID: -1; Flags: []; X: 0; Y: 0; Alpha: 255);
@@ -200,14 +194,14 @@ const
 
   PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
 
+
+  EMPTY_TILE: TPageTileRecord = (TextureID: -1; Flags: []);
   PAGE_EMPTY_TILEMAPINFO: TPageTilemapInfo = (Tilemap: nil; Width: 0;
     Height: 0);
-  PAGE_EMPTY_TILEMAPS: TPageTilemaps = (Tilemap1: (Tilemap: nil; Width: 0;
-    Height: 0); Tilemap2: (Tilemap: nil; Width: 0; Height: 0);
-    Tilemap3: (Tilemap: nil; Width: 0; Height: 0);
-    Tilemap4: (Tilemap: nil; Width: 0; Height: 0);
-    Tilemap5: (Tilemap: nil; Width: 0; Height: 0);
-    Tilemap6: (Tilemap: nil; Width: 0; Height: 0));
+  PAGE_EMPTY_TILEMAPS: TPageTilemaps = ((Tilemap: nil; Width: 0; Height: 0),
+    (Tilemap: nil; Width: 0; Height: 0), (Tilemap: nil; Width: 0; Height: 0),
+    (Tilemap: nil; Width: 0; Height: 0), (Tilemap: nil; Width: 0; Height: 0),
+    (Tilemap: nil; Width: 0; Height: 0), (Tilemap: nil; Width: 0; Height: 0));
 
   operator = (spritea : TPageSprite; spriteb : TPageSprite) b : boolean;
   operator = (tilerecorda: TPageTileRecord; tilerecordb: TPageTileRecord) b: boolean;
@@ -232,26 +226,39 @@ type
     property AddressableMemory: Pointer;
   end;
 
+  { IPageMemoryWrapper }
+
   IPageMemoryWrapper = interface
     [SPageMemoryWrapper]
 
     function GetSDLRenderer: PSDL_Renderer;
-    function GetRenderEngineInfo: TPageRenderEngineInfo;
-    function GetRenderEngineInfoPointer: Pointer;
+    function GetRenderEngineInfo: PPageRenderEngineInfo;
+    //function GetRenderEngineInfoPointer: Pointer;
+    function GetSDLWindow: PSDL_Window;
     function GetTextureManagerInfo: TPageTextureManagerInfo;
     function GetTextureManagerInfoPointer: Pointer;
+
+    function GetTilemapInfo(Index: Integer): TPageTilemapInfo;
+    function GetTilemapInfoPointer(Index: Integer): PPageTilemapInfo;
+    procedure SetSDLWindow(AValue: PSDL_Window);
+    procedure SetTilemapInfo(Index: Integer; AValue: TPageTilemapInfo);
 
     function VRAMMemoryManagerInterface: IPageMemoryManager;
     function WRAMMemoryManagerInterface: IPageMemoryManager;
 
-    property SDLWindow: PSDL_Window;
+    property SDLWindow: PSDL_Window read GetSDLWindow write SetSDLWindow;
     property SDLRenderer: PSDL_Renderer read GetSDLRenderer;
-    property RenderEngineInfo: TPageRenderEngineInfo read GetRenderEngineInfo;
-    property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
+    property RenderEngineInfo: PPageRenderEngineInfo read GetRenderEngineInfo;
+    //property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
 
     property TextureManagerInfo: TPageTextureManagerInfo
       read GetTextureManagerInfo;
     property TextureManagerInfoPointer: Pointer read GetTextureManagerInfoPointer;
+
+    property Tilemaps[Index: Integer]: TPageTilemapInfo read GetTilemapInfo
+      write SetTilemapInfo;
+    property TilemapsPointer[Index: Integer]: PPageTilemapInfo read
+      GetTilemapInfoPointer;
   end;
 
 implementation

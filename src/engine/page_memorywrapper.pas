@@ -41,14 +41,16 @@ type
     FOnAfterVRAMInitialized, FOnAfterWRAMInitialized: TNotifyEvent;
 
     function GetExitGameLoop: Boolean;
-    function GetRenderEngineInfo: TPageRenderEngineInfo;
-    function GetRenderEngineInfoPointer: Pointer;
+    function GetRenderEngineInfo: PPageRenderEngineInfo;
+    //function GetRenderEngineInfoPointer: Pointer;
     function GetRenderOneFrame: Boolean;
     function GetSDLRenderer: PSDL_Renderer;
     function GetSDLWindow: PSDL_Window;
     function GetTextureManagerInfo: TPageTextureManagerInfo;
     function GetTextureManagerInfoPointer: Pointer;
-    function GetTilemaps: TPageTilemaps;
+    function GetTilemapInfo(Index: Integer): TPageTilemapInfo;
+    function GetTilemapInfoPointer(Index: Integer): PPageTilemapInfo;
+    //function GetTilemaps: TPageTilemaps;
     function GetVRAMInitializationStatus: Boolean;
     function GetVRAMPointer: Pointer;
     function GetVRAMSize: Integer;
@@ -56,11 +58,12 @@ type
     function GetWRAMPointer: Pointer;
     function GetWRAMSize: Integer;
     procedure SetExitGameLoop(AValue: Boolean);
-    procedure SetRenderEngineInfo(AValue: TPageRenderEngineInfo);
+    //procedure SetRenderEngineInfo(AValue: TPageRenderEngineInfo);
     procedure SetRenderOneFrame(AValue: Boolean);
     procedure SetSDLRenderer(AValue: PSDL_Renderer);
     procedure SetSDLWindow(AValue: PSDL_Window);
-    procedure SetTilemaps(AValue: TPageTilemaps);
+    procedure SetTilemapInfo(Index: Integer; AValue: TPageTilemapInfo);
+    //procedure SetTilemaps(AValue: TPageTilemaps);
 
     { procedure InitializeVRAMMemoryManagerIfPossible;
     procedure InitializeWRAMMemoryManagerIfPossible; }
@@ -80,10 +83,14 @@ type
 
     property VRAM: Pointer read GetVRAMPointer;
     property VRAMSize: Integer read GetVRAMSize;
-    property RenderEngineInfo: TPageRenderEngineInfo read GetRenderEngineInfo
-      write SetRenderEngineInfo;
-    property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
-    property Tilemaps: TPageTilemaps read GetTilemaps write SetTilemaps;
+    property RenderEngineInfo: PPageRenderEngineInfo read GetRenderEngineInfo;
+     // write SetRenderEngineInfo;
+    //property RenderEngineInfoPointer: Pointer read GetRenderEngineInfoPointer;
+    //property Tilemaps: TPageTilemaps read GetTilemaps write SetTilemaps;
+    property Tilemaps[Index: Integer]: TPageTilemapInfo read GetTilemapInfo
+      write SetTilemapInfo;
+    property TilemapsPointer[Index: Integer]: PPageTilemapInfo read
+      GetTilemapInfoPointer;
 
     property WRAM: Pointer read GetWRAMPointer;
     property WRAMSize: Integer read GetWRAMSize ;
@@ -112,18 +119,18 @@ begin
     Result := False;
 end;
 
-function TPageMemoryWrapper.GetRenderEngineInfo: TPageRenderEngineInfo;
+function TPageMemoryWrapper.GetRenderEngineInfo: PPageRenderEngineInfo;
 begin
   if FVRAMPointer <> nil then
-    Result := TPAGEVRAMLayout(FVRAMPointer^).RenderEngine
+    Result := @TPAGEVRAMLayout(FVRAMPointer^).RenderEngine
   else
-    Result := PAGE_EMPTY_RENDERENGINEINFO;
+    Result := nil;
 end;
 
-function TPageMemoryWrapper.GetRenderEngineInfoPointer: Pointer;
+{function TPageMemoryWrapper.GetRenderEngineInfoPointer: Pointer;
 begin
   Result := @TPAGEVRAMLayout(FVRAMPointer^).RenderEngine;
-end;
+end;}
 
 function TPageMemoryWrapper.GetRenderOneFrame: Boolean;
 begin
@@ -161,13 +168,24 @@ begin
   Result := @TPageVRAMLayout(FVRAMPointer^).TextureManagerInfo;
 end;
 
-function TPageMemoryWrapper.GetTilemaps: TPageTilemaps;
+function TPageMemoryWrapper.GetTilemapInfo(Index: Integer): TPageTilemapInfo;
+begin
+  Result := TPAGEVRAMLayout(FVRAMPointer^).Tilemaps[Index];
+end;
+
+function TPageMemoryWrapper.GetTilemapInfoPointer(Index: Integer
+  ): PPageTilemapInfo;
+begin
+  Result := @TPAGEVRAMLayout(FVRAMPointer^).Tilemaps[Index];
+end;
+
+{function TPageMemoryWrapper.GetTilemaps: TPageTilemaps;
 begin
   if FVRAMPointer <> nil then
     Result := TPAGEVRAMLayout(FVRAMPointer^).Tilemaps
   else
     Result := PAGE_EMPTY_TILEMAPS;
-end;
+end;}
 
 function TPageMemoryWrapper.GetVRAMInitializationStatus: Boolean;
 begin
@@ -211,11 +229,11 @@ begin
     TPageWRAMLayout(FWRAMPointer^).boolExitGameLoop := AValue;
 end;
 
-procedure TPageMemoryWrapper.SetRenderEngineInfo(AValue: TPageRenderEngineInfo);
+{procedure TPageMemoryWrapper.SetRenderEngineInfo(AValue: TPageRenderEngineInfo);
 begin
   if FVRAMPointer <> nil then
     TPAGEVRAMLayout(FVRAMPointer^).RenderEngine := AValue;
-end;
+end;}
 
 procedure TPageMemoryWrapper.SetRenderOneFrame(AValue: Boolean);
 begin
@@ -235,11 +253,19 @@ begin
     TPageWRAMLayout(FWRAMPointer^).SDLWindow := AValue;
 end;
 
-procedure TPageMemoryWrapper.SetTilemaps(AValue: TPageTilemaps);
+procedure TPageMemoryWrapper.SetTilemapInfo(Index: Integer;
+  AValue: TPageTilemapInfo);
+begin
+  if FVRAMPointer <> nil then
+    TPageVRAMLayout(FVRAMPointer^).Tilemaps[Index] := AValue;
+end;
+
+
+{procedure TPageMemoryWrapper.SetTilemaps(AValue: TPageTilemaps);
 begin
   if FVRAMPointer <> nil then
     TPageVRAMLayout(FVRAMPointer^).Tilemaps := AValue;
-end;
+end;}
 
 constructor TPageMemoryWrapper.Create;
 begin
@@ -248,20 +274,21 @@ begin
   FMemoryManager := TPageDummyMemoryManager;
   FOnAfterWRAMInitialized := nil;
   FOnAfterWRAMInitialized := nil;
+  Self._AddRef; // Prevent the object to be freed by accident
 end;
 
 function TPageMemoryWrapper.VRAMMemoryManagerInterface: IPageMemoryManager;
 begin
   Result := nil;
   if Assigned(FVRAMMemMan) then
-    Result := FVRAMMemMan;
+    Result := FVRAMMemMan as IPageMemoryManager;
 end;
 
 function TPageMemoryWrapper.WRAMMemoryManagerInterface: IPageMemoryManager;
 begin
   Result := nil;
   if Assigned(FWRAMMemMan) then
-    Result := FWRAMMemMan;
+    Result := FWRAMMemMan as IPageMemoryManager;
 end;
 
 function TPageMemoryWrapper.Bind(aWRAM: Pointer; aWRAMSize: Integer;

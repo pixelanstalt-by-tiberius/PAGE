@@ -15,6 +15,8 @@ type
 
   TPageRenderEngine = class
   private
+    function GetCanvasHeight: Integer;
+    function GetCanvasWidth: Integer;
     function GetSpriteHeight: Word;
     function GetSpriteStream(Index: Integer): Pointer;
     function GetSpriteWidth: Word;
@@ -23,6 +25,8 @@ type
     function GetTilemapCount: Integer;
     function GetTilemapOffset(Index: Integer): TPageCoordinate2D;
     function GetTileWidth: Word;
+    procedure SetCanvasHeight(AValue: Integer);
+    procedure SetCanvasWidth(AValue: Integer);
     procedure SetSpriteHeight(AValue: Word);
     procedure SetSpriteStream(Index: Integer; AValue: Pointer);
     procedure SetSpriteWidth(AValue: Word);
@@ -47,6 +51,8 @@ type
       FlipV: Boolean);
     procedure DoRenderTilemapToTexture(Tilemap: PPageTilemap;
       Texture: PSDL_Texture);
+    procedure DoRenderTilemap(Tilemap: PPageTilemap; OffsetX: Integer = 0;
+      OffsetY: Integer = 0);
     procedure DoRenderSprite(Sprite: TPageSprite);
   public
     constructor Create(aMemoryWrapper: IPageMemoryWrapper; aTextureManager:
@@ -56,6 +62,8 @@ type
     procedure SetTilemap(Number: Word; TileMap: PPageTileMap);
     procedure SetSpriteStreamPointer(Number: Word;
       SpriteStreamPointer: Pointer);
+    procedure BuildTilemaps;
+    procedure BuildSpriteStreams;
 
     property SpriteStreams[Index: Integer]: Pointer read GetSpriteStream
       write SetSpriteStream;
@@ -67,15 +75,27 @@ type
     property SpriteWidth: Word read GetSpriteWidth write SetSpriteWidth;
     property TileHeight: Word read GetTileHeight write SetTileHeight;
     property TileWidth: Word read GetTileWidth write SetTileWidth;
+    property CanvasHeight: Integer read GetCanvasHeight write SetCanvasHeight;
+    property CanvasWidth: Integer read GetCanvasWidth write SetCanvasWidth;
   end;
 
 implementation
 
 { TPageRenderEngine }
 
+function TPageRenderEngine.GetCanvasHeight: Integer;
+begin
+  Result := FMemoryWrapper.RenderEngineInfo^.CanvasDimension.Y;
+end;
+
+function TPageRenderEngine.GetCanvasWidth: Integer;
+begin
+  Result := FMemoryWrapper.RenderEngineInfo^.CanvasDimension.X;
+end;
+
 function TPageRenderEngine.GetSpriteHeight: Word;
 begin
-  Result := FMemoryWrapper.RenderEngineInfo.SpriteDimension.Y;
+  Result := FMemoryWrapper.RenderEngineInfo^.SpriteDimension.Y;
 end;
 
 function TPageRenderEngine.GetSpriteStream(Index: Integer): Pointer;
@@ -86,12 +106,12 @@ end;
 
 function TPageRenderEngine.GetSpriteWidth: Word;
 begin
-  Result := FMemoryWrapper.RenderEngineInfo.SpriteDimension.X;
+  Result := FMemoryWrapper.RenderEngineInfo^.SpriteDimension.X;
 end;
 
 function TPageRenderEngine.GetTileHeight: Word;
 begin
-  Result := FMemoryWrapper.RenderEngineInfo.TileDimension.Y;
+  Result := FMemoryWrapper.RenderEngineInfo^.TileDimension.Y;
 end;
 
 function TPageRenderEngine.GetTileMap(Index: Integer): TPageTileMap;
@@ -102,7 +122,7 @@ end;
 
 function TPageRenderEngine.GetTilemapCount: Integer;
 begin
-  Result := FMemoryWrapper.RenderEngineInfo.TilemapCount;
+  Result := FMemoryWrapper.RenderEngineInfo^.TilemapCount;
 end;
 
 function TPageRenderEngine.GetTilemapOffset(Index: Integer): TPageCoordinate2D;
@@ -113,13 +133,22 @@ end;
 
 function TPageRenderEngine.GetTileWidth: Word;
 begin
-  Result := FMemoryWrapper.RenderEngineInfo.TileDimension.X;
+  Result := FMemoryWrapper.RenderEngineInfo^.TileDimension.X;
+end;
+
+procedure TPageRenderEngine.SetCanvasHeight(AValue: Integer);
+begin
+  FMemoryWrapper.RenderEngineInfo^.CanvasDimension.Y := AValue;
+end;
+
+procedure TPageRenderEngine.SetCanvasWidth(AValue: Integer);
+begin
+  FMemoryWrapper.RenderEngineInfo^.CanvasDimension.X := AValue;
 end;
 
 procedure TPageRenderEngine.SetSpriteHeight(AValue: Word);
 begin
-  TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    SpriteDimension.Y := AValue;
+  FMemoryWrapper.RenderEngineInfo^.SpriteDimension.Y := AValue;
 end;
 
 procedure TPageRenderEngine.SetSpriteStream(Index: Integer; AValue: Pointer);
@@ -131,29 +160,24 @@ end;
 
 procedure TPageRenderEngine.SetSpriteWidth(AValue: Word);
 begin
-  TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    SpriteDimension.X := AValue;
+  FMemoryWrapper.RenderEngineInfo^.SpriteDimension.X := AValue;
 end;
 
 
 procedure TPageRenderEngine.SetTileHeight(AValue: Word);
 begin
-  TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    TileDimension.Y := AValue;
+  FMemoryWrapper.RenderEngineInfo^.TileDimension.Y := AValue;
 end;
 
 procedure TPageRenderEngine.SetTilemapCount(AValue: Integer);
 begin
   if (AValue < 0) then
-    TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-      TilemapCount := 0
+    FMemoryWrapper.RenderEngineInfo^.TilemapCount := 0
   else
     if (AValue <= PAGE_MAX_TILEMAPS) then
-      TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-        TilemapCount := AValue
+      FMemoryWrapper.RenderEngineInfo^.TilemapCount := AValue
     else
-      TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-        TilemapCount := PAGE_MAX_TILEMAPS;
+      FMemoryWrapper.RenderEngineInfo^.TilemapCount := PAGE_MAX_TILEMAPS;
 end;
 
 procedure TPageRenderEngine.SetTilemapOffset(Index: Integer;
@@ -165,86 +189,36 @@ end;
 
 procedure TPageRenderEngine.SetTileWidth(AValue: Word);
 begin
-  TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    TileDimension.X := AValue;
+  FMemoryWrapper.RenderEngineInfo^.TileDimension.X := AValue;
 end;
-
-{
-procedure TPageRenderEngine.DoRenderPerTile;
-var
-  intTilemaps, intSprites, intX, intY: Integer;
-begin
-  for intTilemaps := 0 to TilemapCount-1 do
-  begin
-    for intX := 0 to FTilemaps[intTilemaps]^.Width-1 do
-    begin
-      for intY := 0 to FTilemaps[intTilemaps]^.Height-1 do
-      begin
-        DoDrawTexture(FTilemaps[intTilemaps]^.Map[intX, intY].TextureID,
-          TileWidth*intX+FTilemapOffsets[intTilemaps].X,
-          TileHeight*intY+FTilemapOffsets[intTilemaps].Y,
-          tfFlipH in FTilemaps[intTilemaps]^.Map[intX, intY].
-          Flags, tfFlipV in FTilemaps[intTilemaps]^.Map[intX, intY].
-          Flags);
-      end;
-    end;
-
-    // Draw high priority tiles of the prior layer on top
-    if intTilemaps >= 1 then
-      for intX := 0 to FTilemaps[intTilemaps-1]^.Width-1 do
-        for intY := 0 to FTilemaps[intTilemaps-1]^.Height-1 do
-        begin
-          if tfPriorityHigh in FTilemaps[intTilemaps-1]^.Map[intX, intY].
-            Flags then
-            DoDrawTexture(FTilemaps[intTilemaps-1]^.Map[intX, intY].TextureID,
-              TileWidth*intX+FTilemapOffsets[intTilemaps-1].X,
-              TileHeight*intY+FTilemapOffsets[intTilemaps-1].Y,
-              tfFlipH in FTilemaps[intTilemaps-1]^.Map[intX, intY].
-              Flags, tfFlipV in FTilemaps[intTilemaps-1]^.Map[intX, intY].
-              Flags);
-        end;
-
-    for intSprites := 0 to SPRITE_COUNT-1 do
-      if TPageSprite((FSpriteStreams[intTilemaps]+
-        intSprites*SizeOf(TPageSprite))^) <> EMPTY_SPRITE then
-      begin
-        with TPageSprite((FSpriteStreams[intTilemaps]+
-          intSprites*SizeOf(TPageSprite))^) do
-        begin
-          if sfEnableAlpha in Flags then
-            DoDrawTexture(TextureID, X, Y, (sfFlipH in Flags), (sfFlipV in
-              Flags), Alpha)
-          else
-            DoDrawTexture(TextureID, X, Y, (sfFlipH in Flags), (sfFlipV in
-              Flags));
-        end;
-      end;
-  end;
-end;
-}
 
 procedure TPageRenderEngine.DoRenderPerLayer;
 var
   intTilemapLoop, intOffset: Integer;
   SrcRect: TSDL_Rect;
 begin
-  SrcRect.w := TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    RenderingDimension.X;
-  SrcRect.h := TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-    RenderingDimension.Y;
+  SrcRect.w := FMemoryWrapper.RenderEngineInfo^.RenderingDimension.X;
+  SrcRect.h := FMemoryWrapper.RenderEngineInfo^.RenderingDimension.Y;
 
-  for intTilemapLoop := 0 to TilemapCount-1 do
+  SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
+  for intTilemapLoop := 0 to 0 do // TilemapCount-1 do
   begin
     if not FTilemaps[intTilemapLoop]^.isValid then
     begin
       DoRenderTilemapToTexture(FTilemaps[intTilemapLoop],
         FRenderedBackgrounds[intTilemapLoop]);
       FTilemaps[intTilemapLoop]^.Validate;
+      SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
     end;
 
     SrcRect.x := FTilemapOffsets[intTilemapLoop].X;
     SrcRect.y := FTilemapOffsets[intTilemapLoop].Y;
 
+    //DoRenderTilemap(FTilemaps[intTilemapLoop],
+    //  FTilemapOffsets[intTilemapLoop].X, FTilemapOffsets[intTilemapLoop].Y);
+
+    //if intTilemapLoop = 0 then
+    //SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
     SDL_RenderCopyEx(FMemoryWrapper.SDLRenderer,
       FRenderedBackgrounds[intTilemapLoop], @SrcRect, nil, 0, nil, 0);
 
@@ -264,12 +238,13 @@ var
   intLoop: Integer;
 begin
   for intLoop := 0 to PAGE_MAX_TILEMAPS-1 do
+  begin
     FRenderedBackgrounds[intLoop] := SDL_CreateTexture(FMemoryWrapper.
       SDLRenderer, 0, SDL_TEXTUREACCESS_TARGET,
-      TPageRenderEngineInfo(FMemoryWrapper.
-      RenderEngineInfoPointer^).CanvasDimension.X,
-      TPageRenderEngineInfo(FMemoryWrapper.RenderEngineInfoPointer^).
-      CanvasDimension.Y);
+      FMemoryWrapper.RenderEngineInfo^.CanvasDimension.X,
+      FMemoryWrapper.RenderEngineInfo^.CanvasDimension.Y);
+    SDL_SetTextureBlendMode(FRenderedBackgrounds[intLoop], SDL_BLENDMODE_BLEND);
+  end;
 end;
 
 procedure TPageRenderEngine.DoDrawTileTexture(TextureID: TPageTextureID; X,
@@ -296,26 +271,59 @@ procedure TPageRenderEngine.DoRenderTilemapToTexture(Tilemap: PPageTilemap;
   Texture: PSDL_Texture);
 var
   OldRenderTarget: PSDL_Texture;
-  intX, intY: Integer;
 begin
   OldRenderTarget := SDL_GetRenderTarget(FMemoryWrapper.SDLRenderer);
   if SDL_SetRenderTarget(FMemoryWrapper.SDLRenderer, Texture) <> 0 then
-    Exception.Create('Failed to change rendering target');
-  SDL_RenderClear(FMemoryWrapper.SDLRenderer);
+    raise Exception.Create('Failed to change rendering target');
+  //SDL_RenderClear(FMemoryWrapper.SDLRenderer);
+  //SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_NONE);
+  SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 0, 0, 0, 0);
+  SDL_RenderFillRect(FMemoryWrapper.SDLRenderer, nil);
+  DoRenderTilemap(Tilemap);
+  //SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
+  SDL_SetRenderTarget(FMemoryWrapper.SDLRenderer, OldRenderTarget);
+end;
+
+procedure TPageRenderEngine.DoRenderTilemap(Tilemap: PPageTilemap;
+  OffsetX: Integer; OffsetY: Integer);
+var
+  intX, intY: Integer;
+  {$ifdef DEBUG_TILE_BORDER}
+    InnerBorderRect: TSDL_Rect;
+  {$endif}
+begin
+  {$ifdef DEBUG_TILE_BORDER}
+    InnerBorderRect.h := TileHeight;
+    InnerBorderRect.w := TileWidth;
+  {$endif}
+  SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
   for intX := 0 to Tilemap^.Width-1 do
   begin
     for intY := 0 to Tilemap^.Height-1 do
     begin
       if Tilemap^.Map[intX, intY].TextureID < 0 then
+      begin
+        {$ifdef DEBUG_TILE_BORDER}
+          SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 0, 255, 0, 127);
+          InnerBorderRect.x := TileWidth*intX+OffsetX;
+          InnerBorderRect.y := TileHeight*intY+OffsetY;
+          SDL_RenderDrawRect(FMemoryWrapper.SDLRenderer, @InnerBorderRect);
+        {$endif}
         Continue;
+      end;
       DoDrawTileTexture(Tilemap^.Map[intX, intY].TextureID,
-        TileWidth*intX, TileHeight*intY,
+        TileWidth*intX+OffsetX, TileHeight*intY+OffsetY,
         tfFlipH in Tilemap^.Map[intX, intY].Flags, tfFlipV in
         Tilemap^.Map[intX, intY].Flags);
+
+      {$ifdef DEBUG_TILE_BORDER}
+        SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 0, 255, 0, 127);
+        InnerBorderRect.x := TileWidth*intX+OffsetX;
+        InnerBorderRect.y := TileHeight*intY+OffsetY;
+        SDL_RenderDrawRect(FMemoryWrapper.SDLRenderer, @InnerBorderRect);
+      {$endif}
     end;
   end;
-  SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
-  SDL_SetRenderTarget(FMemoryWrapper.SDLRenderer, OldRenderTarget);
 end;
 
 procedure TPageRenderEngine.DoRenderSprite(Sprite: TPageSprite);
@@ -362,7 +370,10 @@ end;
 
 procedure TPageRenderEngine.DoRender;
 begin
+  //SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 128, 0, 128, 255);
+  SDL_RenderClear(FMemoryWrapper.SDLRenderer);
   DoRenderPerLayer;
+  SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
 end;
 
 procedure TPageRenderEngine.SetTilemap(Number: Word; TileMap: PPageTileMap);
@@ -378,6 +389,51 @@ begin
   { TODO: Range check }
   { TODO: Free memory if slot was used before }
   FSpriteStreams[Number] := SpriteStreamPointer;
+end;
+
+procedure TPageRenderEngine.BuildTilemaps;
+var
+  intLoop: Integer;
+begin
+  for intLoop := 0 to High(FTilemaps) do
+    if FTilemaps[intLoop] <> nil then
+    begin
+      FTilemaps[intLoop]^.Free;
+      FTilemaps[intLoop] := nil;
+    end;
+
+  for intLoop := 0 to TilemapCount-1 do
+  begin
+    New(FTilemaps[intLoop]);
+    FMemoryWrapper.Tilemaps[intLoop] := PAGE_EMPTY_TILEMAPINFO;
+    FTilemaps[intLoop]^ := TPageTilemap.Create(FMemoryWrapper.
+      TilemapsPointer[intLoop], FMemoryWrapper.VRAMMemoryManagerInterface);
+    FTilemaps[intLoop]^.SetMapSize(FMemoryWrapper.RenderEngineInfo^.
+      CanvasDimension.X div TileWidth, FMemoryWrapper.RenderEngineInfo^.
+      CanvasDimension.Y div TileHeight);
+  end;
+
+  InitializeRenderedBackgroundsTextures
+end;
+
+procedure TPageRenderEngine.BuildSpriteStreams;
+var
+  intLoop, intSprites: Integer;
+begin
+  for intLoop := 0 to High(FSpriteStreams) do
+    if FSpriteStreams[intLoop] <> nil then
+    begin
+      FreeMem(FSpriteStreams[intLoop]);
+      FSpriteStreams[intLoop] := nil;
+    end;
+
+  for intLoop := 0 to TilemapCount-1 do
+  begin
+    FSpriteStreams[intLoop] := AllocMem(SizeOf(TPageSprite)*PAGE_MAX_SPRITES);
+    for intSprites := 0 to PAGE_MAX_SPRITES-1 do
+      Move(EMPTY_SPRITE, (FSpriteStreams[intLoop]+SizeOf(TPageSprite)*intSprites)^,
+        SizeOf(TPageSprite));
+  end;
 end;
 
 end.

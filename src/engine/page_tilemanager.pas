@@ -34,13 +34,10 @@ type
       write SetMapTileRecord;
     property Width: Integer read GetMapWidth;
     property Height: Integer read GetMapHeight;
-    property isValid: Boolean read FisVald;
+    property isValid: Boolean read FisValid;
   end;
 
   PPageTileMap = ^TPageTileMap;
-
-const
-  EMPTY_TILE: TPageTileRecord = (TextureID: -1; Flags: []);
 
 implementation
 
@@ -54,8 +51,8 @@ end;
 function TPageTileMap.GetMapTileRecord(X, Y: Integer): TPageTileRecord;
 begin
   { TODO: Range check }
-  Result := TPageTileRecord((FMapInfo^.Tilemap+Y*FMapInfo^.Width*
-    SizeOf(TPageTileRecord)+X*SizeOf(TPageTileRecord))^);
+  Result := TPageTileRecord((FMapInfo^.Tilemap+(Y*FMapInfo^.Width*
+    SizeOf(TPageTileRecord))+(X*SizeOf(TPageTileRecord)))^);
 end;
 
 function TPageTileMap.GetMapWidth: Integer;
@@ -87,8 +84,8 @@ procedure TPageTileMap.Clear;
 var
   intLoop: Integer;
 begin
-  for intLoop := 0 to (FMapInfo^.Width*FMapInfo^.Width)-1 do
-    TPageTileRecord((FMapInfo^.TileMap+intLoop*SizeOf(TPageTileRecord))^) :=
+  for intLoop := 0 to (FMapInfo^.Height*FMapInfo^.Width)-1 do
+    TPageTileRecord((FMapInfo^.TileMap+(intLoop*SizeOf(TPageTileRecord)))^) :=
     EMPTY_TILE;
   FisValid := False;
 end;

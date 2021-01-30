@@ -78,7 +78,7 @@ type
   PPageTextureManager = ^TPageTextureManager;
 
 const
-  TEXTUREARRAY_ENLARGE_AMOUNT = 50;
+  TEXTUREARRAY_ENLARGE_AMOUNT = 2;
   UNDEFINED_TEXTURE_INFO: TPageTextureInfo = (TextureName : 'undefined';
     TexturePointer : nil);
 
@@ -136,8 +136,10 @@ end;
 procedure TPageTextureManager.CheckAndEnlargeTextureArray;
 var
   ptrNew: Pointer;
+  int1, int2: Integer;
 begin
   { TODO: Offset error? }
+  {$warning Function not clean - overwrites random memory}
   if (TextureCount+1) > FMemoryWrapper.TextureManagerInfo.
     TextureInfoPersistence.EntriesOrSize then
   begin
@@ -145,20 +147,26 @@ begin
       FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.EntriesOrSize+
       TEXTUREARRAY_ENLARGE_AMOUNT)*SizeOf(TPageTextureInfo));
 
-    Move(FMemoryWrapper.TextureManagerInfo.
-      TextureInfoPersistence.Stream, ptrNew, FMemoryWrapper.TextureManagerInfo.
-      TextureInfoPersistence.EntriesOrSize*SizeOf(TPageTextureInfo));
     if FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.Stream <>
       nil then
+    begin
+      Move(FMemoryWrapper.TextureManagerInfo.
+        TextureInfoPersistence.Stream^, ptrNew^, FMemoryWrapper.
+        TextureManagerInfo.TextureInfoPersistence.EntriesOrSize*
+        SizeOf(TPageTextureInfo));
+
       FMemoryWrapper.VRAMMemoryManagerInterface.PageMMFreeMem(FMemoryWrapper.
         TextureManagerInfo.TextureInfoPersistence.Stream);
+    end;
+
+
     TPageTextureManagerInfo(FMemoryWrapper.TextureManagerInfoPointer^).
       TextureInfoPersistence.Stream := ptrNew;
 
     TPageTextureManagerInfo(FMemoryWrapper.TextureManagerInfoPointer^).
       TextureInfoPersistence.EntriesOrSize :=
       (FMemoryWrapper.TextureManagerInfo.TextureInfoPersistence.EntriesOrSize+
-      TEXTUREARRAY_ENLARGE_AMOUNT)*SizeOf(TPageTextureInfo)
+      TEXTUREARRAY_ENLARGE_AMOUNT);
     //SetLength(FTextures^, Length(FTextures^)+TEXTUREARRAY_ENLARGE_AMOUNT);
   end;
 end;
@@ -178,8 +186,8 @@ begin
     //Textures[FCurrentTextureCount].TextureName := aTextureName;
     //Textures[FCurrentTextureCount].TexturePointer := aSDLTexture;
     TPageTextureInfo((FMemoryWrapper.TextureManagerInfo.
-      TextureInfoPersistence.Stream+TextureCount*
-      SizeOf(TPageTextureInfo))^).TexturePointer := aSDLTexture;
+      TextureInfoPersistence.Stream+(TextureCount*
+      SizeOf(TPageTextureInfo)))^).TexturePointer := aSDLTexture;
 
     Result := TextureCount;
 

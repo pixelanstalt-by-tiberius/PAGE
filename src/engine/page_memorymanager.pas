@@ -5,7 +5,7 @@ unit page_memorymanager;
 interface
 
 uses
-  Classes, SysUtils, PageApi;
+  Classes, SysUtils, PageApi, page_eventqueue, Dialogs;
 
 type
 
@@ -58,11 +58,14 @@ begin
   FboolIsInitialized := Word(StartingAddress^) = PAGE_MM_MAGIC_BYTES;
   FptrAddressableMemory := fptrMemory+SizeOf(PAGE_MM_MAGIC_BYTES);
   fintAddressableMemorySize := FintMemorySize-SizeOf(PAGE_MM_MAGIC_BYTES);
+  Self._AddRef; // Prevent object to be freed by accident
 end;
 
 destructor TPageMemoryManager.Destroy;
 begin
-
+  gEventQueue.CastEventString(etNotification, psMemoryManager, psDebug,
+    esWarning, 'Memory Manager was destroyed');
+  raise Exception.Create('Memory Manager destroyed');
 end;
 
 function TPageMemoryManager.DoInitialize: Boolean;

@@ -8,7 +8,7 @@ uses
   cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
   page_helpers, page_texturemanager, page_memorywrapper,
   splash_res in '../../res/splash_res.pas', page_spritemanager,
-  page_renderengine;
+  page_renderengine, page_BitmapFontManager;
 
 
 { TODO: Window-, Renderer- etc. -initailizations should be separated in
@@ -35,6 +35,7 @@ type
     FTextureManager: TPageTextureManager;
     FSpriteManager: TPageSpriteManager;
     FRenderEngine: TPageRenderEngine;
+    FBitmapFontManager: TPageBMFManager;
 
     FDispatchedEvents: array[0..MAX_EVENTS] of TPAGE_Event;
     FNumDispatchedEvents: Integer;
@@ -45,6 +46,7 @@ type
     procedure MemoryWrapperAfterVRAMInitialized(Sender: TObject);
 
     procedure StartPerformanceTest;
+    procedure WriteText(TilemapNumber, X, Y: Integer; Text: String);
   public
     property ROM: Pointer read FROM;
     property ROMSize: Integer read FROMSize;
@@ -114,6 +116,9 @@ begin
   FRenderEngine := TPageRenderEngine.Create(FMemoryWrapper, @FTextureManager);
   FSpriteManager := TPageSpriteManager.Create;
   FSpriteManager.AssignTextureManager(@FTextureManager);
+  FBitmapFontManager := TPageBMFManager.Create(FMemoryWrapper);
+  FBitmapFontManager.AssignTextureManager(@FTextureManager);
+
   for intLoop := 0 to FRenderEngine.TilemapCount-1 do
     FSpriteManager.AssignStream(intLoop, FRenderEngine.SpriteStreams[intLoop]);
 end;
@@ -121,11 +126,32 @@ end;
 procedure TPixelanstaltGameEngine.StartPerformanceTest;
 var
   intState: Integer = 0;
+  CanvasDimension: TPageCoordinate2D;
 begin
   // Initialize Subsystems for performance testing
 
   // Create and initialize tilemaps
   // Initialize Render Engine
+
+  FRenderEngine.TileHeight := 8;
+  FRenderEngine.TileWidth := 8;
+  FBitmapFontManager.FontHeight := 8;
+  FRenderEngine.TilemapCount := PAGE_MAX_TILEMAPS;
+
+  CanvasDimension := FMemoryWrapper.RenderEngineInfo^.RenderingDimension;
+  CanvasDimension.X *= 2;
+  CanvasDimension.Y *= 2;
+  FMemoryWrapper.RenderEngineInfo^.CanvasDimension := CanvasDimension;
+
+  FRenderEngine.BuildTilemaps;
+  FRenderEngine.BuildSpriteStreams;
+
+  if not FBitmapFontManager.isFontLoaded then
+    FBitmapFontManager.LoadIntegratedFont;
+
+
+  WriteText(0, 0, 0, 'Pixelanstalt Game Engine');
+  WriteText(0, 0, 1, 'Performanace Test');
 
   while not (FMemoryWrapper.ExitGameLoop) do
   begin
@@ -135,7 +161,24 @@ begin
       0:
     end;
 
+    FRenderEngine.DoRender;
+
     gEventQueue.DoDispatchEvents;
+  end;
+end;
+
+procedure TPixelanstaltGameEngine.WriteText(TilemapNumber, X, Y: Integer;
+  Text: String);
+var
+  tr: TPageTileRecord;
+  intLoop: Integer;
+begin
+  tr := EMPTY_TILE;
+
+  for intLoop := 0 to Length(Text)-1 do
+  begin
+    tr.TextureID := FBitmapFontManager.TextureID(Text[intLoop+1]);
+    FRenderEngine.Tilemaps[TilemapNumber].Map[X+intLoop,Y] := tr;
   end;
 end;
 
@@ -247,6 +290,12 @@ begin
       gEventQueue.CastEventString(etNotification, psMain, psDebug, esError,
         PChar('Failed to set logical render size: ' + SDL_GetError));
     end;
+
+    FMemoryWrapper.RenderEngineInfo^.RenderingDimension.X := RenderSettings.
+      RenderSizeWidth;
+    FMemoryWrapper.RenderEngineInfo^.RenderingDimension.Y := RenderSettings.
+      RenderSizeHeight;
+
     SDL_RenderClear(FMemoryWrapper.SDLRenderer);
     SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
   end;
