@@ -92,6 +92,8 @@ begin
       case LowerCase(FDispatchedEvents[intEventLoop].EventMessageString) of
         'break': FMemoryWrapper.ExitGameLoop := true;
         'show_splashscreen': Splashscreen;
+        'fullscreen': SDL_SetWindowFullscreen(FMemoryWrapper.SDLWindow,
+                        SDL_WINDOW_FULLSCREEN);
       end;
     end;
   end;
@@ -126,6 +128,7 @@ end;
 procedure TPixelanstaltGameEngine.StartPerformanceTest;
 var
   intState: Integer = 0;
+  intLast, intRound, intFPS: Integer;
   CanvasDimension: TPageCoordinate2D;
 begin
   // Initialize Subsystems for performance testing
@@ -152,13 +155,30 @@ begin
 
   WriteText(0, 0, 0, 'Pixelanstalt Game Engine');
   WriteText(0, 0, 1, 'Performanace Test');
+  WriteText(0, 43, 0, 'FPS:');
+  WriteText(1, 0, 2, 'This is displayed Layer 1');
+
+  intLast := SDL_GetTicks;
+  intFPS := -1;
+  intRound := 0;
 
   while not (FMemoryWrapper.ExitGameLoop) do
   begin
     ProcessDispatchedEvents;
+    if intRound >= 100 then
+    begin
+      intRound := 0;
+      intFPS := Round(100/((SDL_GetTicks-intLast)/1000));
+      intLast := SDL_GetTicks;
+    end;
+    Inc(intRound);
 
     case intState of
-      0:
+      0:  begin
+            WriteText(2, 48, 0, '    ');
+            WriteText(2, 48, 0, intToStr(intFPS));
+
+          end;
     end;
 
     FRenderEngine.DoRender;

@@ -276,7 +276,7 @@ begin
   if SDL_SetRenderTarget(FMemoryWrapper.SDLRenderer, Texture) <> 0 then
     raise Exception.Create('Failed to change rendering target');
   //SDL_RenderClear(FMemoryWrapper.SDLRenderer);
-  //SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_NONE);
+  SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_NONE);
   SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 0, 0, 0, 0);
   SDL_RenderFillRect(FMemoryWrapper.SDLRenderer, nil);
   DoRenderTilemap(Tilemap);
