@@ -14,8 +14,10 @@ uses
 
 type
   TPageWRAMLayout = packed record
+    isInitializedMagicBytes: array[0..2] of Char;
     SDLWindow: PSDL_Window;
     SDLRenderer: PSDL_Renderer;
+
     boolExitGameLoop: Boolean;
     boolRenderOneFrame: Boolean;
   end;
