@@ -6,6 +6,8 @@ object frmVarConsole: TfrmVarConsole
   Caption = 'Variable Console'
   ClientHeight = 240
   ClientWidth = 445
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   LCLVersion = '2.0.10.0'
   object lvVariableConsole: TListView
     Left = 0

@@ -234,9 +234,9 @@ end;
 
 procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
 begin
-  if (gDebugDataHandler.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE <>
+  if (gDebugDataHandler.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE =
     gDebugDataHandler.FDispatchedEventsTail then
-    Exception.Create('Event queue overflow');
+    raise Exception.Create('Event queue overflow');
 
   EnterCriticalSection(gEventDispatchCriticalSection);
   if gDebugDataHandler.FDispatchedEventsTail < 0 then

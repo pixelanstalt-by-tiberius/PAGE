@@ -20,6 +20,8 @@ type
     lvVariableConsole: TListView;
     RefreshEvents: TTimer;
     RefreshVariableValues: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure RefreshEventsTimer(Sender: TObject);
     procedure RefreshVariableValuesTimer(Sender: TObject);
   private
@@ -33,7 +35,6 @@ type
 
     procedure CreateVariableList;
   public
-    class procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event); static;
 
     property VariableCount: Integer read GetVariableCount;
     property Variables[Index: Integer]: TPageDebugVariable read GetVariable
@@ -45,7 +46,41 @@ var
   gEventDispatchCriticalSection: TRTLCriticalSection;
 
 
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+
 implementation
+
+procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+begin
+  if (frmVarConsole.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE =
+    frmVarConsole.FDispatchedEventsTail then
+    raise Exception.Create('Event queue overflow');
+
+  EnterCriticalSection(gEventDispatchCriticalSection);
+  if frmVarConsole.FDispatchedEventsTail < 0 then
+    frmVarConsole.FDispatchedEventsTail := 0;
+
+  frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead] := aDispatchedEvent;
+
+  if (aDispatchedEvent.EventMessage = emString) then
+  begin
+    frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].EventMessageString :=
+      StrNew(aDispatchedEvent.EventMessageString);
+  end;
+
+  if (aDispatchedEvent.EventMessage = emDebugInfo) then
+  begin
+    case aDispatchedEvent.DebugInfoType of
+      diString: frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].DebugString :=
+        StrNew(aDispatchedEvent.DebugString);
+      diVariable: frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].
+        DebugVariable.Name := StrNew(aDispatchedEvent.DebugVariable.Name);
+    end;
+  end;
+
+  frmVarConsole.FDispatchedEventsHead := (frmVarConsole.FDispatchedEventsHead + 1) mod EVENT_QUEUE_SIZE;
+  LeaveCriticalSection(gEventDispatchCriticalSection);
+end;
 
 {$R *.lfm}
 
@@ -153,6 +188,16 @@ begin
     CreateVariableList;
 end;
 
+procedure TfrmVarConsole.FormCreate(Sender: TObject);
+begin
+  InitCriticalSection(gEventDispatchCriticalSection);
+end;
+
+procedure TfrmVarConsole.FormDestroy(Sender: TObject);
+begin
+  DoneCriticalSection(gEventDispatchCriticalSection);
+end;
+
 function TfrmVarConsole.GetVariable(Index: Integer): TPageDebugVariable;
 begin
   Result := FVariables[Index];
@@ -190,38 +235,6 @@ begin
   lvVariableConsole.EndUpdate;
 end;
 
-class procedure TfrmVarConsole.EventQueueDispatch(aDispatchedEvent: TPAGE_Event
-  );
-begin
-  if (frmVarConsole.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE <>
-    frmVarConsole.FDispatchedEventsTail then
-    Exception.Create('Event queue overflow');
-
-  EnterCriticalSection(gEventDispatchCriticalSection);
-  if frmVarConsole.FDispatchedEventsTail < 0 then
-    frmVarConsole.FDispatchedEventsTail := 0;
-
-  frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead] := aDispatchedEvent;
-
-  if (aDispatchedEvent.EventMessage = emString) then
-  begin
-    frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].EventMessageString :=
-      StrNew(aDispatchedEvent.EventMessageString);
-  end;
-
-  if (aDispatchedEvent.EventMessage = emDebugInfo) then
-  begin
-    case aDispatchedEvent.DebugInfoType of
-      diString: frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].DebugString :=
-        StrNew(aDispatchedEvent.DebugString);
-      diVariable: frmVarConsole.FDispatchedEvents[frmVarConsole.FDispatchedEventsHead].
-        DebugVariable.Name := StrNew(aDispatchedEvent.DebugVariable.Name);
-    end;
-  end;
-
-  frmVarConsole.FDispatchedEventsHead := (frmVarConsole.FDispatchedEventsHead + 1) mod EVENT_QUEUE_SIZE;
-  LeaveCriticalSection(gEventDispatchCriticalSection);
-end;
 
 end.
 
