@@ -128,8 +128,14 @@ end;
 procedure TPixelanstaltGameEngine.StartPerformanceTest;
 var
   intState: Integer = 0;
-  intLast, intRound, intFPS: Integer;
+  intSelectedMenuEntry: Integer = 0;
+  intLastTick: UInt32 = 0;
+  boolBlinkState: Boolean = True;
+  intMenuSelectEndX: array[0..1] of Integer = (24, 8);
   CanvasDimension: TPageCoordinate2D;
+  event: TSDL_Event;
+  boolDown: Boolean = False;
+  boolEnter: Boolean = False;
 begin
   // Initialize Subsystems for performance testing
 
@@ -156,28 +162,68 @@ begin
   WriteText(0, 0, 0, 'Pixelanstalt Game Engine');
   WriteText(0, 0, 1, 'Performanace Test');
   WriteText(0, 43, 0, 'FPS:');
-  WriteText(1, 0, 2, 'This is displayed Layer 1');
-
-  intLast := SDL_GetTicks;
-  intFPS := -1;
-  intRound := 0;
 
   while not (FMemoryWrapper.ExitGameLoop) do
   begin
     ProcessDispatchedEvents;
-    if intRound >= 100 then
+    WriteText(0, 48, 0, Format('%.4d', [FRenderEngine.FPS]));
+
+    while (SDL_PollEvent(@event) <> 0) do
     begin
-      intRound := 0;
-      intFPS := Round(100/((SDL_GetTicks-intLast)/1000));
-      intLast := SDL_GetTicks;
+      case event.type_ of
+        SDL_KEYDOWN:
+          begin
+            case event.key.keysym.sym of
+              SDLK_RETURN: boolEnter := True;
+              SDLK_DOWN: boolDown := True;
+            end;
+          end;
+      end;
     end;
-    Inc(intRound);
 
     case intState of
       0:  begin
-            WriteText(2, 48, 0, '    ');
-            WriteText(2, 48, 0, intToStr(intFPS));
+            if SDL_GetTicks - intLastTick >= 500 then
+            begin
+              boolBlinkState := not boolBlinkState;
+              intLastTick := SDL_GetTicks;
+            end;
 
+            if boolBlinkState then
+            begin
+              WriteText(1, 1, intSelectedMenuEntry+4, '[');
+              WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
+                intSelectedMenuEntry+4, ']');
+            end
+            else
+            begin
+              WriteText(1, 1, intSelectedMenuEntry+4, ' ');
+              WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
+                intSelectedMenuEntry+4, ' ');
+            end;
+
+            if boolDown then
+            begin
+              if boolBlinkState then
+              begin
+                WriteText(1, 1, intSelectedMenuEntry+4, ' ');
+                WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
+                  intSelectedMenuEntry+4, ' ');
+              end;
+              intSelectedMenuEntry := (intSelectedMenuEntry + 1) mod 2;
+              boolDown := False;
+            end;
+
+            if boolEnter then
+            begin
+              case intSelectedMenuEntry of
+                1: FMemoryWrapper.ExitGameLoop := True;
+              end;
+              boolEnter := False;
+            end;
+
+            WriteText(1, 3, 4, 'Start rendering test');
+            WriteText(1, 3, 5, 'Exit');
           end;
     end;
 
