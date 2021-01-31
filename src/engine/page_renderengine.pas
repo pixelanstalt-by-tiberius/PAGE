@@ -42,6 +42,9 @@ type
     FTextureManager: PPageTextureManager;
     FMemoryWrapper: IPageMemoryWrapper;
 
+    FintRounds, FintFPS: DWord;
+    FLastTick: UInt32;
+
     // procedure DoRenderPerTile;
     procedure DoRenderPerLayer;
 
@@ -65,6 +68,7 @@ type
     procedure BuildTilemaps;
     procedure BuildSpriteStreams;
 
+    property FPS: DWord read FintFPS;
     property SpriteStreams[Index: Integer]: Pointer read GetSpriteStream
       write SetSpriteStream;
     property Tilemaps[Index: Integer]: TPageTileMap read GetTileMap;
@@ -359,6 +363,8 @@ begin
   FMemoryWrapper := aMemoryWrapper;
   FTextureManager := aTextureManager;
   TilemapCount := 0;
+  FintFPS := 0;
+  FLastTick := 0;
   for intLoop := 0 to PAGE_MAX_TILEMAPS-1 do
   begin
     FTilemaps[intLoop] := nil;
@@ -370,7 +376,14 @@ end;
 
 procedure TPageRenderEngine.DoRender;
 begin
-  //SDL_SetRenderDrawColor(FMemoryWrapper.SDLRenderer, 128, 0, 128, 255);
+  if (SDL_GetTicks - FLastTick >= 2000) then
+  begin
+    FintFPS := Round(FintRounds/((SDL_GetTicks - FLastTick)/1000));
+    FintRounds := 0;
+    FLastTick := SDL_GetTicks;
+  end;
+  Inc(FintRounds);
+
   SDL_RenderClear(FMemoryWrapper.SDLRenderer);
   DoRenderPerLayer;
   SDL_RenderPresent(FMemoryWrapper.SDLRenderer);
