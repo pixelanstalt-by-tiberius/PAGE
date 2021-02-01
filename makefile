@@ -13,7 +13,7 @@ debug: lazflags = --bm=Debug -q -q
 
 release: resources package library starter
 debug: resources package library starter
-debug_tests: package debug tests do_run_tests
+debug_tests: resources package debug tests do_run_tests
 
 package:
 	lazbuild src/engine/pixelanstaltgameengine.lpk
