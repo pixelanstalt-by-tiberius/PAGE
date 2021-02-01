@@ -1,4 +1,4 @@
-library PAGE;
+library page;
 
 {$mode objfpc}{$H+}
 

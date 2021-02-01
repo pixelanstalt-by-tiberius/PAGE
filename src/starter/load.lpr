@@ -9,7 +9,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, main, pageinit, DebugConsole, DebugDataHandler, ConsoleComponent,
-  PAGEAPI, APIHelper, varconsole
+  APIHelper, varconsole, pageapi
   { you can add units after this };
 
 {$R *.res}

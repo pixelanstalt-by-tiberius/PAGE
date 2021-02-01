@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <Name Value="PixelanstaltGameEngine"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)/"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Files Count="16">
+      <Item1>
+        <Filename Value="page_bitmapfontmanager.pas"/>
+        <UnitName Value="page_BitmapFontManager"/>
+      </Item1>
+      <Item2>
+        <Filename Value="page_blockmemorymanager.pas"/>
+        <UnitName Value="page_blockmemorymanager"/>
+      </Item2>
+      <Item3>
+        <Filename Value="page_dummymemorymanager.pas"/>
+        <UnitName Value="page_dummymemorymanager"/>
+      </Item3>
+      <Item4>
+        <Filename Value="page_encapsulate.pas"/>
+        <UnitName Value="page_encapsulate"/>
+      </Item4>
+      <Item5>
+        <Filename Value="page_eventqueue.pas"/>
+        <UnitName Value="PAGE_EventQueue"/>
+      </Item5>
+      <Item6>
+        <Filename Value="page_helpers.pas"/>
+        <UnitName Value="page_helpers"/>
+      </Item6>
+      <Item7>
+        <Filename Value="page_improvedmemorymanager.pas"/>
+        <UnitName Value="page_improvedmemorymanager"/>
+      </Item7>
+      <Item8>
+        <Filename Value="page_memorymanager.pas"/>
+        <UnitName Value="page_memorymanager"/>
+      </Item8>
+      <Item9>
+        <Filename Value="page_memorywrapper.pas"/>
+        <UnitName Value="page_memorywrapper"/>
+      </Item9>
+      <Item10>
+        <Filename Value="page_renderengine.pas"/>
+        <UnitName Value="page_renderengine"/>
+      </Item10>
+      <Item11>
+        <Filename Value="page_spritemanager.pas"/>
+        <UnitName Value="page_spritemanager"/>
+      </Item11>
+      <Item12>
+        <Filename Value="page_texturemanager.pas"/>
+        <UnitName Value="page_texturemanager"/>
+      </Item12>
+      <Item13>
+        <Filename Value="page_tilemanager.pas"/>
+        <UnitName Value="page_tilemanager"/>
+      </Item13>
+      <Item14>
+        <Filename Value="pageapi.pas"/>
+        <UnitName Value="PAGEAPI"/>
+      </Item14>
+      <Item15>
+        <Filename Value="PAGEconst.inc"/>
+        <Type Value="Include"/>
+      </Item15>
+      <Item16>
+        <Filename Value="page_constants.pas"/>
+        <UnitName Value="page_constants"/>
+      </Item16>
+    </Files>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="PascalSDL2Header"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

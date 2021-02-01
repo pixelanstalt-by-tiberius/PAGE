@@ -8,9 +8,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   Spin, DynLibs, LazFileUtils, pageinit, DebugDataHandler, DebugConsole,
-  PAGEAPI, APIHelper, SDL2, varconsole;
-
-{$include ../PAGEconst.inc}
+  PAGEAPI, APIHelper, SDL2, varconsole, page_constants;
 
 type
   TPageWRAMLayout = packed record

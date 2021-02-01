@@ -11,9 +11,12 @@ endif
 release: lazflags = -r -B --bm=Release -q
 debug: lazflags = --bm=Debug -q -q
 
-release: resources engine starter
-debug: resources engine starter
-debug_tests: debug tests do_run_tests
+release: resources package library starter
+debug: resources package library starter
+debug_tests: package debug tests do_run_tests
+
+package:
+	lazbuild src/engine/pixelanstaltgameengine.lpk
 
 resource_creator:
 	lazbuild src/tools/InlineResourceCreator/irc.lpi
@@ -27,8 +30,8 @@ resources: resource_creator
 	# compile resource-pas for dogica bitmap font
 	bin/debug/tools/irc -fres/fonts/dogica8.png -bres/fonts/dogica8.fnt -ores/fonts/font_dogica8.pas
 
-engine:
-	lazbuild $(lazflags) src/engine/PAGE.lpi
+library:
+	lazbuild $(lazflags) src/library/page.lpi
 engine_test:
 	lazbuild -q -q tests/engine/engine_test.lpi
 
@@ -48,6 +51,7 @@ clean:
 	rm -f bin/release/page_load$(exesuffix)
 	rm -f bin/debug/tests/*
 	rm -f bin/debug/tools/*
+	rm -rf src/library/lib
 	rm -rf src/engine/lib
 	rm -rf src/starter/lib
 	rm -rf tests/engine/lib

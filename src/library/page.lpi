@@ -10,7 +10,7 @@
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="PAGE"/>
+      <Title Value="page"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
@@ -20,7 +20,7 @@
         <CompilerOptions>
           <Version Value="11"/>
           <Target>
-            <Filename Value="../../bin/release/PAGE"/>
+            <Filename Value="../../bin/debug/page"/>
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
@@ -53,80 +53,30 @@
       <FormatVersion Value="2"/>
       <Modes Count="0"/>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="PascalSDL2Header"/>
+        <PackageName Value="PixelanstaltGameEngine"/>
       </Item1>
+      <Item2>
+        <PackageName Value="PascalSDL2Header"/>
+      </Item2>
     </RequiredPackages>
-    <Units Count="15">
+    <Units Count="2">
       <Unit0>
-        <Filename Value="PAGE.lpr"/>
+        <Filename Value="page.lpr"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="libpage"/>
       </Unit0>
       <Unit1>
-        <Filename Value="page_eventqueue.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="PAGE_EventQueue"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="page_helpers.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="page_encapsulate.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit3>
-      <Unit4>
         <Filename Value="../../res/splash_res.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="page_texturemanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="page_memorymanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="page_blockmemorymanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="page_improvedmemorymanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="page_tilemanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="page_renderengine.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="page_memorywrapper.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="page_spritemanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="page_dummymemorymanager.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="page_bitmapfontmanager.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="page_BitmapFontManager"/>
-      </Unit14>
+      </Unit1>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="../../bin/debug/PAGE"/>
+      <Filename Value="../../bin/debug/page"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
