@@ -5,8 +5,8 @@ unit page_encapsulate;
 interface
 
 uses
-  cthreads, Classes, SysUtils, PAGE_EventQueue, PAGEApi, SDL2, SDL2_Image,
-  page_helpers, page_texturemanager, page_memorywrapper,
+  {$ifdef unix}cthreads, {$endif} Classes, SysUtils, PAGE_EventQueue, PAGEApi,
+  SDL2, SDL2_Image, page_helpers, page_texturemanager, page_memorywrapper,
   splash_res in '../../res/splash_res.pas', page_spritemanager,
   page_renderengine, page_BitmapFontManager;
 

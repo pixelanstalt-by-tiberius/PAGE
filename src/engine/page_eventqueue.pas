@@ -5,7 +5,7 @@ unit PAGE_EventQueue;
 interface
 
 uses
-  cthreads, Classes, SysUtils, PageAPI, SDL2;
+  {$ifdef unix} cthreads, {$endif} Classes, SysUtils, PageAPI, SDL2;
 
 const
   MAX_EVENTS = High(Word);
