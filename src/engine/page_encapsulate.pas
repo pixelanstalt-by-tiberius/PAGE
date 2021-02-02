@@ -128,19 +128,36 @@ end;
 procedure TPixelanstaltGameEngine.StartPerformanceTest;
 var
   intState: Integer = 0;
+  intSubState: Integer = 0;
   intSelectedMenuEntry: Integer = 0;
   intLastTick: UInt32 = 0;
   boolBlinkState: Boolean = True;
   intMenuSelectEndX: array[0..1] of Integer = (24, 8);
   CanvasDimension: TPageCoordinate2D;
+  Coord: TPageCoordinate2D;
   event: TSDL_Event;
   boolDown: Boolean = False;
   boolEnter: Boolean = False;
+  intTilemaps, intX, intY: Integer;
+  tr: TPageTileRecord;
+  Performance: array[0..1] of array [0..3] of UInt64;
+  intLastPerformanceCount, intPerfDiff, intPerfFreq: UInt64;
+  intCycles: UInt64 = 0;
+  intDiffSum: UInt64 = 0;
 begin
   // Initialize Subsystems for performance testing
 
   // Create and initialize tilemaps
   // Initialize Render Engine
+
+  Performance[0][0] := High(UInt64);
+  Performance[0][1] := Low(UInt64);
+  Performance[1][0] := High(UInt64);
+  Performance[1][1] := Low(UInt64);
+
+  intPerfFreq := SDL_GetPerformanceFrequency;
+
+  Randomize;
 
   FRenderEngine.TileHeight := 8;
   FRenderEngine.TileWidth := 8;
@@ -217,6 +234,12 @@ begin
             if boolEnter then
             begin
               case intSelectedMenuEntry of
+                0: begin
+                     intState := 1; // Rendering Test
+                     FRenderEngine.ClearAllTilemaps;
+                     intLastTick := SDL_GetTicks;
+                     intLastPerformanceCount := 0;
+                   end;
                 1: FMemoryWrapper.ExitGameLoop := True;
               end;
               boolEnter := False;
@@ -225,6 +248,87 @@ begin
             WriteText(1, 3, 4, 'Start rendering test');
             WriteText(1, 3, 5, 'Exit');
           end;
+      1: begin
+           // Begin rendering test; increase substate each 10 seconds
+           if SDL_GetTicks - intLastTick >= 10000 then
+           begin
+             Performance[intSubState][2] :=
+               Round(intDiffSum/intCycles);
+
+             gEventQueue.CastEventString(etNotification, psMain, psDebug,
+               esInfo, PChar(Format('Rendering test subsequence %d ended. Cycles: %d'+
+               ' Min: %.3f, Max: %.3f, Avg: %.3f, Last FPS: %d', [intSubState, intCycles,
+               Performance[intSubState][0]/intPerfFreq,
+               Performance[intSubState][1]/intPerfFreq,
+               Performance[intSubState][2]/intPerfFreq,
+               FRenderEngine.FPS])));
+
+             Inc(intSubState);
+             intLastPerformanceCount := 0;
+             intDiffSum := 0;
+             intCycles := 0;
+
+             intLastTick := SDL_GetTicks;
+           end;
+
+           // Measure performance
+           if intLastPerformanceCount = 0 then
+             intLastPerformanceCount := SDL_GetPerformanceCounter
+           else
+           begin
+             intPerfDiff := SDL_GetPerformanceCounter - intLastPerformanceCount;
+             if Performance[intSubState][0] > intPerfDiff then
+               Performance[intSubState][0] := intPerfDiff;
+             if Performance[intSubState][1] < intPerfDiff then
+               Performance[intSubState][1] := intPerfDiff;
+
+             intDiffSum := intDiffSum + intPerfDiff;
+             intCycles := intCycles + 1;
+
+             intLastPerformanceCount := SDL_GetPerformanceCounter;
+           end;
+
+           case intSubState of
+             0: begin
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                      Width-1 do
+                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                        Height-1 do
+                      begin
+                        tr.TextureID := FBitmapFontManager.TextureID(char(
+                          Random(75)+48));
+                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
+                          tr;
+                      end;
+                  end;
+                end;
+             1: begin
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                      Width-1 do
+                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                        Height-1 do
+                      begin
+                        tr.TextureID := FBitmapFontManager.TextureID(char(
+                          Random(75)+48));
+                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
+                          tr;
+                      end;
+                  end;
+
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    Coord := FRenderEngine.TilemapOffsets[intTilemaps];
+                    Coord.X := Coord.X+Random(4);
+                    Coord.Y := Coord.Y+Random(4);
+                    FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
+                  end;
+                end;
+           end;
+         end;
     end;
 
     FRenderEngine.DoRender;
@@ -253,7 +357,7 @@ procedure EventQueueListenerMaster(
 begin
   EnterCriticalSection(gPage.FEventDispatchCriticalSection);
   if gPage.FNumDispatchedEvents = MAX_EVENTS then
-    Exception.Create('Event buffer overflow');
+    raise Exception.Create('Event buffer overflow');
 
   Inc(gPage.FNumDispatchedEvents);
 
@@ -267,7 +371,7 @@ end;
 constructor TPixelanstaltGameEngine.Create;
 begin
   if Assigned(gPAGE) then
-    Exception.Create('Tried to initialize PAGE singleton twice');
+    raise Exception.Create('Tried to initialize PAGE singleton twice');
   FboolShowSplashScreen := True;
   FNumDispatchedEvents := 0;
   InitCriticalSection(FEventDispatchCriticalSection);

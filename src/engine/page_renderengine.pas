@@ -61,6 +61,8 @@ type
     constructor Create(aMemoryWrapper: IPageMemoryWrapper; aTextureManager:
       PPageTextureManager);
 
+    procedure ClearAllTilemaps;
+
     procedure DoRender;
     procedure SetTilemap(Number: Word; TileMap: PPageTileMap);
     procedure SetSpriteStreamPointer(Number: Word;
@@ -372,6 +374,14 @@ begin
     FSpriteStreams[intLoop] := nil;
     FRenderedBackgrounds[intLoop] := nil;
   end;
+end;
+
+procedure TPageRenderEngine.ClearAllTilemaps;
+var
+  intLoop: Integer;
+begin
+  for intLoop := 0 to TilemapCount-1 do
+    FTilemaps[intLoop]^.Clear;
 end;
 
 procedure TPageRenderEngine.DoRender;
