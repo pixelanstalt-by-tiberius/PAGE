@@ -133,6 +133,7 @@ var
   intLastTick: UInt32 = 0;
   boolBlinkState: Boolean = True;
   intMenuSelectEndX: array[0..1] of Integer = (24, 8);
+  RandomTextures: array[0..99] of TPageTextureID;
   CanvasDimension: TPageCoordinate2D;
   Coord: TPageCoordinate2D;
   event: TSDL_Event;
@@ -140,7 +141,7 @@ var
   boolEnter: Boolean = False;
   intTilemaps, intX, intY: Integer;
   tr: TPageTileRecord;
-  Performance: array[0..1] of array [0..3] of UInt64;
+  Performance: array[0..3] of array [0..3] of UInt64;
   intLastPerformanceCount, intPerfDiff, intPerfFreq: UInt64;
   intCycles: UInt64 = 0;
   intDiffSum: UInt64 = 0;
@@ -175,6 +176,10 @@ begin
   if not FBitmapFontManager.isFontLoaded then
     FBitmapFontManager.LoadIntegratedFont;
 
+
+  for intX := 0 to High(RandomTextures) do
+    RandomTextures[intX] := FBitmapFontManager.TextureID(Char(
+      Random(75)+48));
 
   WriteText(0, 0, 0, 'Pixelanstalt Game Engine');
   WriteText(0, 0, 1, 'Performanace Test');
@@ -256,14 +261,26 @@ begin
                Round(intDiffSum/intCycles);
 
              gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               esInfo, PChar(Format('Rendering test subsequence %d ended. Cycles: %d'+
-               ' Min: %.3f, Max: %.3f, Avg: %.3f, Last FPS: %d', [intSubState, intCycles,
-               Performance[intSubState][0]/intPerfFreq,
-               Performance[intSubState][1]/intPerfFreq,
-               Performance[intSubState][2]/intPerfFreq,
-               FRenderEngine.FPS])));
+               esInfo, PChar(Format('Rendering test subsequence %d ended. ' +
+                 'Cycles: %d, Min: %.3f ms (%.2f fps), Max: %.3f ms ' +
+                 '(%.2f fps), Avg: %.3f ms (%.2f fps)', [intSubState, intCycles,
+               Performance[intSubState][0]/(intPerfFreq/1000),
+               1000/(Performance[intSubState][0]/(intPerfFreq/1000)),
+               Performance[intSubState][1]/(intPerfFreq/1000),
+               1000/(Performance[intSubState][1]/(intPerfFreq/1000)),
+               Performance[intSubState][2]/(intPerfFreq/1000),
+               1000/(Performance[intSubState][2]/(intPerfFreq/1000))])));
 
              Inc(intSubState);
+             if intSubState = 2 then
+             begin
+               Coord.X := 0;
+               Coord.Y := 0;
+               for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                 FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
+               FRenderEngine.SetRenderingModePerTile;
+             end;
+
              intLastPerformanceCount := 0;
              intDiffSum := 0;
              intCycles := 0;
@@ -292,38 +309,96 @@ begin
              0: begin
                   for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
                   begin
+                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
                     for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
                       Width-1 do
                       for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
                         Height-1 do
                       begin
-                        tr.TextureID := FBitmapFontManager.TextureID(char(
-                          Random(75)+48));
+                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
                         FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
                           tr;
                       end;
+                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
                   end;
                 end;
              1: begin
                   for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
                   begin
+                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
                     for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
                       Width-1 do
                       for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
                         Height-1 do
                       begin
-                        tr.TextureID := FBitmapFontManager.TextureID(char(
-                          Random(75)+48));
+                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
                         FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
                           tr;
                       end;
+                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
                   end;
 
                   for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
                   begin
                     Coord := FRenderEngine.TilemapOffsets[intTilemaps];
-                    Coord.X := Coord.X+Random(4);
-                    Coord.Y := Coord.Y+Random(4);
+                    if Coord.X > 5 then
+                      Coord.X := Coord.X+5*(Random(2)-1)
+                    else
+                      Inc(Coord.X);
+
+                    if Coord.Y > 5 then
+                      Coord.Y := Coord.Y+5*(Random(2)-1)
+                    else
+                      Inc(Coord.Y);
+
+                    FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
+                  end;
+                end;
+             2: begin
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
+                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                      Width-1 do
+                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                        Height-1 do
+                      begin
+                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
+                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
+                          tr;
+                      end;
+                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
+                  end;
+                end;
+             3: begin
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
+                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                      Width-1 do
+                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
+                        Height-1 do
+                      begin
+                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
+                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
+                          tr;
+                      end;
+                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
+                  end;
+
+                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
+                  begin
+                    Coord := FRenderEngine.TilemapOffsets[intTilemaps];
+                    if Coord.X > 5 then
+                      Coord.X := Coord.X+5*(Random(2)-1)
+                    else
+                      Inc(Coord.X);
+
+                    if Coord.Y > 5 then
+                      Coord.Y := Coord.Y+5*(Random(2)-1)
+                    else
+                      Inc(Coord.Y);
+
                     FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
                   end;
                 end;
