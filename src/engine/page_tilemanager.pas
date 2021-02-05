@@ -1,6 +1,7 @@
 unit page_tilemanager;
 
 {$mode objfpc}{$H+}
+{$inline on}
 
 interface
 
@@ -12,11 +13,11 @@ type
 
   TPageTileMap = class
   private
-    FisVald: Boolean;
-    function GetMapHeight: Integer;
-    function GetMapTileRecord(X, Y: Integer): TPageTileRecord;
-    function GetMapWidth: Integer;
-    procedure SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord);
+    FBulkUpdate: Boolean;
+    function GetMapHeight: Integer; inline;
+    function GetMapTileRecord(X, Y: Integer): TPageTileRecord; inline;
+    function GetMapWidth: Integer; inline;
+    procedure SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord); inline;
   protected
     FMemoryManagerInterface: IPageMemoryManager;
     FMapInfo: PPageTilemapInfo;
@@ -26,9 +27,11 @@ type
       MemoryManagerInterface: IPageMemoryManager);
 
     procedure Clear;
-    procedure Invalidate;
-    procedure Validate;
+    procedure Invalidate; inline;
+    procedure Validate; inline;
     procedure SetMapSize(Width, Height: Integer);
+    procedure BeginUpdate;
+    procedure EndUpdate;
 
     property Map[X, Y: Integer]: TPageTileRecord read GetMapTileRecord
       write SetMapTileRecord;
@@ -63,7 +66,7 @@ end;
 procedure TPageTileMap.SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord);
 begin
   { TODO: Range check }
-  if AValue <> GetMapTileRecord(X, Y) then
+  if (FBulkUpdate) or (AValue <> GetMapTileRecord(X, Y)) then
   begin
     Move(AValue, TPageTileRecord((FMapInfo^.Tilemap+Y*FMapInfo^.Width*
       SizeOf(TPageTileRecord)+X*SizeOf(TPageTileRecord))^),
@@ -78,6 +81,7 @@ begin
   FMemoryManagerInterface := MemoryManagerInterface;
   FMapInfo := MapInfo;
   FisValid := False;
+  FBulkUpdate := False;
 end;
 
 procedure TPageTileMap.Clear;
@@ -112,6 +116,17 @@ begin
   FMapInfo^.TileMap := FMemoryManagerInterface.PageMMGetMem(Width*Height*
     SizeOf(TPageTileRecord));
   Clear;
+end;
+
+procedure TPageTileMap.BeginUpdate;
+begin
+  FBulkUpdate := True;
+end;
+
+procedure TPageTileMap.EndUpdate;
+begin
+  FBulkUpdate := False;
+  FisValid := False;
 end;
 
 end.
