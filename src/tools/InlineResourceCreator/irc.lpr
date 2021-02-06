@@ -33,9 +33,18 @@ begin
   InitOutputFile;
   for intInputLoop := 0 to High(FilesToProcess) do
   begin
-    WriteLn(Format('Processing resource #%d (%s)', [intInputLoop+1,
-      FilesToProcess[intInputLoop]]));
-    ProcessInputFile(FilesToProcess[intInputLoop], Identifiers[intInputLoop]);
+    if FileFlags[intInputLoop] <> [] then
+    begin
+      if ffCompress in FileFlags[intInputLoop] then
+        WriteLn(Format('Processing resource #%d [compress] (%s)', [intInputLoop+1,
+          FilesToProcess[intInputLoop]]));
+    end
+    else
+      WriteLn(Format('Processing resource #%d (%s)', [intInputLoop+1,
+        FilesToProcess[intInputLoop]]));
+
+    ProcessInputFile(FilesToProcess[intInputLoop], Identifiers[intInputLoop],
+      ffCompress in FileFlags[intInputLoop]);
   end;
   for intInputLoop := 0 to High(FNTToProcess) do
   begin

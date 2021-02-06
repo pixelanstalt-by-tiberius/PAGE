@@ -8,11 +8,16 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils, StrUtils;
+  Classes, SysUtils, StrUtils, ZStream;
+
+type
+  TFileFlags = set of (ffDummy, ffCompress);
 
 var
   // Filenames (full path) of resource files are stored here
   FilesToProcess: array of String;
+  // Flags for inputfiles
+  FileFlags: array of TFileFlags;
   // Filenames (full path) of BMFont-files are stored here
   fntToProcess: array of String;
 
@@ -48,7 +53,8 @@ procedure InitOutputFile;
 function ComposeIdentifiers: String;
 procedure DoneOutputFile;
 function ComposeByteArray(var Stream: TStream): String;
-procedure ProcessInputFile(Filename: String; Identifier: String);
+procedure ProcessInputFile(Filename: String; Identifier: String;
+  Compress: Boolean = False);
 procedure ProcessFNT(FNTFilename: String; Identifier: String);
 function ToRect(strRect: String): TRect;
 function GetIntValue(Content, ParamName: String): Integer;
@@ -112,9 +118,30 @@ begin
     case LowerCase(Copy(ParamStr(intParamLoop), 1, 2)) of
       '-f': begin
               SetLength(FilesToProcess, Length(FilesToProcess)+1);
+              SetLength(FileFlags, Length(FileFlags)+1);
+              FileFlags[High(FileFlags)] := [];
               FilesToProcess[High(FilesToProcess)] :=
                 Copy(ParamStr(intParamLoop), 3, Length(
                 ParamStr(intParamLoop))-2);
+              if FilesToProcess[High(FilesToProcess)][1] = '"' then
+                FilesToProcess[High(FilesToProcess)] := Copy(
+                  FilesToProcess[High(FilesToProcess)], 3,
+                  Length(FilesToProcess[High(FilesToProcess)])-2);
+              if not CheckAndAddIdentifier(FilesToProcess[High(
+                FilesToProcess)]) then
+              begin
+                WriteLn(Format('Failed: Duplicate identifier for file "%s"',
+                  [FilesToProcess[High(FilesToProcess)]]));
+                Halt(3);
+              end;
+            end;
+      '-c': begin
+              SetLength(FilesToProcess, Length(FilesToProcess)+1);
+              SetLength(FileFlags, Length(FileFlags)+1);
+              FilesToProcess[High(FilesToProcess)] :=
+                Copy(ParamStr(intParamLoop), 3, Length(
+                ParamStr(intParamLoop))-2);
+              FileFlags[High(FileFlags)] := [ffCompress];
               if FilesToProcess[High(FilesToProcess)][1] = '"' then
                 FilesToProcess[High(FilesToProcess)] := Copy(
                   FilesToProcess[High(FilesToProcess)], 3,
@@ -163,7 +190,7 @@ begin
   WriteLn;
   if PrintHelp then
   begin
-    WriteLn(' irc -fFILENAME [-fFILENAME2] [-bFNTFILE] ... -oOUTPUT');
+    WriteLn(' irc -fFILENAME [-fFILENAME2] [-cFILETOCOMPRESS3] [-bFNTFILE] ... -oOUTPUT');
     WriteLn;
     WriteLn('The Inline Resource Creator creates a .pas-file as OUTPUT which ');
     WriteLn(' will contain the input files referenced by FILENAME as raw data');
@@ -227,7 +254,7 @@ end;
 
 function ComposeByteArray(var Stream: TStream): String;
 var
-  Buffer: array[0..65535] of Byte;
+  Buffer: array[0..655359] of Byte;
   intRead, intBufferLoop: Integer;
 begin
   Result := '';
@@ -243,21 +270,41 @@ begin
   until intRead <> Length(Buffer);
 end;
 
-procedure ProcessInputFile(Filename: String; Identifier: String);
+procedure ProcessInputFile(Filename: String; Identifier: String;
+  Compress: Boolean);
 var
   InputFileStream: TFileStream;
+  CompressionStream: TCompressionStream;
+  MemoryStream: TMemoryStream;
+  SrcStream: Pointer;
 begin
   try
     try
       InputFileStream := TFileStream.Create(Filename, fmOpenRead or
         fmShareDenyWrite);
+      if Compress then
+      begin
+        MemoryStream := TMemoryStream.Create;
+        CompressionStream := TCompressionStream.create(clMax, MemoryStream,
+          True);
+        CompressionStream.CopyFrom(InputFileStream, InputFileStream.Size);
+        CompressionStream.flush;
+        SrcStream := @MemoryStream;
+      end
+      else
+        SrcStream := @InputFileStream;
 
       OutputFileContents.Add(Format('%s: array[0..%d] of byte = (%s);',
         [Identifier, InputFileStream.Size-1, ComposeByteArray(TStream(
-        InputFileStream))]));
+        TStream(SrcStream^)))]));
 
       OutputFileContents.Add('');
     finally
+      if Compress then
+      begin
+        CompressionStream.Free;
+        MemoryStream.Free;
+      end;
       InputFileStream.Free;
     end;
   except
