@@ -65,7 +65,6 @@
       <Unit0>
         <Filename Value="page.lpr"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="libpage"/>
       </Unit0>
       <Unit1>
         <Filename Value="../../res/splash_res.pas"/>

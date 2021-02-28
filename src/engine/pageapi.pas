@@ -66,6 +66,7 @@ type
   TPageTilemapInfo = packed record
     Tilemap: Pointer;
     Width, Height: Integer;
+    Enabled: Boolean;
   end;
   PPageTileMapInfo = ^TPageTileMapInfo;
 
@@ -113,11 +114,11 @@ type
   TFNTCharInfoArray = array of TFNTCharInfo;
 
 
-  TPAGE_EventType = (etNotification, etRequest);
-  TPAGE_SubSystem = (psMain, psDebug, psAudio, psInput, psVideo, psHaptics,
-    psROM, psTextureManager, psMemoryWrapper, psMemoryManager);
+  TPAGE_EventType = (etEmpty, etNotification, etRequest);
+  TPAGE_SubSystem = (psNone, psMain, psDebug, psAudio, psInput, psVideo,
+    psHaptics, psROM, psTextureManager, psMemoryWrapper, psMemoryManager);
   TPAGE_SubSystems = set of TPAGE_SubSystem;
-  TPAGE_EventMessage = (emEmpty, emDebugInfo, emString);
+  TPAGE_EventMessage = (emEmpty, emDebugInfo, emString, emPlaySound);
 
   TPageEventSeverity = (esNotSet, esDebug, esInfo, esWarning, esError,
     esException);
@@ -138,6 +139,17 @@ type
     VariableType: TPageDebugVariableType;
   end;
 
+  TPageResourceType = (rtInline, rtFile);
+
+  TPageSoundResource = record
+    case ResourceType: TPageResourceType of
+      rtInline: (
+        Memory: Pointer;
+        Size: ptrUInt; );
+      rtFile: (
+        Filename: PChar )
+  end;
+
   TPAGE_Event = record
     EventType: TPAGE_EventType;
     EventTick: UInt64;
@@ -152,11 +164,13 @@ type
             DebugVariable: TPageDebugVariable; )
         );
       emString: (EventSeverity: TPageEventSeverity; EventMessageString: PChar);
+      emPlaySound: (SoundResource: TPageSoundResource);
       emEmpty: ();
   end;
 
-  TPAGE_EventQueueListener = procedure(aDispatchedEvent: TPAGE_Event);
-  PPAGE_EventQueueListener = ^TPAGE_EventQueueListener;
+  TPAGE_EventQueueListenerProcedure = procedure(aDispatchedEvent: TPAGE_Event);
+  TPAGE_EventQueueListenerMethod = procedure(aDispatachedEvent: TPAGE_Event) of
+    object;
 
 // Methods
 type
@@ -169,17 +183,22 @@ type
     Boolean;
   TPAGE_EnterGameLoop = function(overrideDelta: Double = -1): Boolean;
   TPAGE_Splashscreen = function(overrideDelta: Double = -1): Boolean;
-  TPAGE_AddEventQueueListener = function(aEventListener: TPAGE_EventQueueListener;
+  TPAGE_AddEventQueueListenerProcedure =
+    function(aEventListener: TPAGE_EventQueueListenerProcedure;
+    ListenToSubSystems: TPAGE_SubSystems): Boolean;
+  TPAGE_AddEventQueueListenerMethod =
+    function(aEventListener: TPAGE_EventQueueListenerMethod;
     ListenToSubSystems: TPAGE_SubSystems): Boolean;
   TPAGE_CastEvent = procedure(aEvent: TPAGE_Event; aString: PChar = '');
 
 
 const
-  PAGE_METHOD_NUM = 8;
+  PAGE_METHOD_NUM = 9;
   PAGE_METHOD_NAMES: array[0..PAGE_METHOD_NUM-1] of String = ('PAGE_Do_Initialize',
     'PAGE_Do_Finalize', 'PAGE_Do_BindToApp', 'PAGE_Do_GetRendererInfos',
     'PAGE_Do_EnterGameLoop', 'PAGE_Do_Splashscreen',
-    'PAGE_Do_AddEventQueueListener', 'PAGE_Do_CastEvent');
+    'PAGE_Do_AddEventQueueListenerProcedure',
+    'PAGE_Do_AddEventQueueListenerMethod', 'PAGE_Do_CastEvent');
 
   PAGE_MM_MAGIC_BYTES: Word = 12345; { TODO: Maybe change }
   PAGE_WRAM_MAGIC_BYTES: array[0..2] of Char = ('P', 'G', 'R');
@@ -194,10 +213,13 @@ const
 
   PAGE_COORDINATE2D_NULL: TPageCoordinate2D = (X: 0; Y: 0);
 
+  EMPTY_EVENT: TPAGE_Event = (EventType: etEmpty; EventTick: 0;
+    EventSenderSubsystem: psNone; EventReceiverSubsystem: psNone;
+    EventMessage: emEmpty);
 
   EMPTY_TILE: TPageTileRecord = (TextureID: -1; Flags: []);
   PAGE_EMPTY_TILEMAPINFO: TPageTilemapInfo = (Tilemap: nil; Width: 0;
-    Height: 0);
+    Height: 0; Enabled: False);
   PAGE_EMPTY_TILEMAPS: TPageTilemaps = ((Tilemap: nil; Width: 0; Height: 0),
     (Tilemap: nil; Width: 0; Height: 0), (Tilemap: nil; Width: 0; Height: 0),
     (Tilemap: nil; Width: 0; Height: 0), (Tilemap: nil; Width: 0; Height: 0),

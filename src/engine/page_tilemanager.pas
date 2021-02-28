@@ -14,9 +14,11 @@ type
   TPageTileMap = class
   private
     FBulkUpdate: Boolean;
+    function GetEnabledStatus: Boolean;
     function GetMapHeight: Integer; inline;
     function GetMapTileRecord(X, Y: Integer): TPageTileRecord; inline;
     function GetMapWidth: Integer; inline;
+    procedure SetEnabledStatus(AValue: Boolean);
     procedure SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord); inline;
   protected
     FMemoryManagerInterface: IPageMemoryManager;
@@ -38,6 +40,7 @@ type
     property Width: Integer read GetMapWidth;
     property Height: Integer read GetMapHeight;
     property isValid: Boolean read FisValid;
+    property Enabled: Boolean read GetEnabledStatus write SetEnabledStatus;
   end;
 
   PPageTileMap = ^TPageTileMap;
@@ -51,6 +54,11 @@ begin
   Result := FMapInfo^.Height;
 end;
 
+function TPageTileMap.GetEnabledStatus: Boolean;
+begin
+  Result := FMapInfo^.Enabled;
+end;
+
 function TPageTileMap.GetMapTileRecord(X, Y: Integer): TPageTileRecord;
 begin
   { TODO: Range check }
@@ -61,6 +69,11 @@ end;
 function TPageTileMap.GetMapWidth: Integer;
 begin
   Result := FMapInfo^.Width;
+end;
+
+procedure TPageTileMap.SetEnabledStatus(AValue: Boolean);
+begin
+  FMapInfo^.Enabled := AValue;
 end;
 
 procedure TPageTileMap.SetMapTileRecord(X, Y: Integer; AValue: TPageTileRecord);

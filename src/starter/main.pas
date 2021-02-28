@@ -303,8 +303,8 @@ begin
 
     if Result then
     begin
-      FPAGEAPI.PAGEAddEventQueueListener(@DebugDataHandler.EventQueueDispatch, [psDebug]);
-      FPAGEAPI.PAGEAddEventQueueListener(@VarConsole.EventQueueDispatch,
+      FPAGEAPI.PAGEAddEventQueueListenerMethod(@gDebugDataHandler.EventQueueDispatch, [psDebug]);
+      FPAGEAPI.PAGEAddEventQueueListenerProcedure(@VarConsole.EventQueueDispatch,
         [psDebug]);
       frmDebugConsole.CastEvent := FPAGEAPI.PAGECastEvent;
     end;

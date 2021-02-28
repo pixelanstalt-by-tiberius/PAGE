@@ -49,6 +49,8 @@ type
     procedure ErrorInfoText(ASender: TObject; AErrorInfo: String);
     procedure ExceptionInfoText(ASender: TObject; AExceptionInfo: String);
 
+    procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+
     procedure UpdateDispatchedEventQueue;
 
     property InfoCount: Integer read GetInfoCount;
@@ -57,7 +59,7 @@ type
   end;
 
 
-procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+
 
 var
   gDebugDataHandler: TDebugDataHandler;
@@ -232,7 +234,7 @@ begin
   LeaveCriticalSection(gEventDispatchCriticalSection);
 end;
 
-procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+procedure TDebugDataHandler.EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
 begin
   if (gDebugDataHandler.FDispatchedEventsHead+1) mod EVENT_QUEUE_SIZE =
     gDebugDataHandler.FDispatchedEventsTail then

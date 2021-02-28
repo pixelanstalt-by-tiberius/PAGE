@@ -52,7 +52,7 @@ procedure PrintWelcomeMessage(PrintHelp: Boolean = False);
 procedure InitOutputFile;
 function ComposeIdentifiers: String;
 procedure DoneOutputFile;
-function ComposeByteArray(var Stream: TStream): String;
+function ComposeByteArray(Stream: TStream): String;
 procedure ProcessInputFile(Filename: String; Identifier: String;
   Compress: Boolean = False);
 procedure ProcessFNT(FNTFilename: String; Identifier: String);
@@ -252,9 +252,9 @@ begin
   OutputFileContents.Add('end.');
 end;
 
-function ComposeByteArray(var Stream: TStream): String;
+function ComposeByteArray(Stream: TStream): String;
 var
-  Buffer: array[0..655359] of Byte;
+  Buffer: array[0..65535] of Byte;
   intRead, intBufferLoop: Integer;
 begin
   Result := '';
@@ -289,14 +289,15 @@ begin
           True);
         CompressionStream.CopyFrom(InputFileStream, InputFileStream.Size);
         CompressionStream.flush;
+        MemoryStream.Position := 0;
         SrcStream := @MemoryStream;
       end
       else
         SrcStream := @InputFileStream;
 
       OutputFileContents.Add(Format('%s: array[0..%d] of byte = (%s);',
-        [Identifier, InputFileStream.Size-1, ComposeByteArray(TStream(
-        TStream(SrcStream^)))]));
+        [Identifier, TStream(SrcStream^).Size-1, ComposeByteArray(
+        TStream(SrcStream^))]));
 
       OutputFileContents.Add('');
     finally

@@ -8,7 +8,7 @@ uses
   {$ifdef unix}cthreads, {$endif} Classes, SysUtils, PAGE_EventQueue, PAGEApi,
   SDL2, SDL2_Image, page_helpers, page_texturemanager, page_memorywrapper,
   splash_res in '../../res/splash_res.pas', page_spritemanager,
-  page_renderengine, page_BitmapFontManager;
+  page_renderengine, page_BitmapFontManager, page_soundmanager;
 
 
 { TODO: Window-, Renderer- etc. -initailizations should be separated in
@@ -36,6 +36,7 @@ type
     FSpriteManager: TPageSpriteManager;
     FRenderEngine: TPageRenderEngine;
     FBitmapFontManager: TPageBMFManager;
+    FSoundManager: TPageSoundManager;
 
     FDispatchedEvents: array[0..MAX_EVENTS] of TPAGE_Event;
     FNumDispatchedEvents: Integer;
@@ -106,7 +107,8 @@ end;
 procedure TPixelanstaltGameEngine.MemoryWrapperAfterWRAMInitialized(
   Sender: TObject);
 begin
-
+  FSoundManager := TPageSoundManager.Create;
+  FSoundManager.Initialize;
 end;
 
 procedure TPixelanstaltGameEngine.MemoryWrapperAfterVRAMInitialized(
@@ -126,291 +128,7 @@ begin
 end;
 
 procedure TPixelanstaltGameEngine.StartPerformanceTest;
-var
-  intState: Integer = 0;
-  intSubState: Integer = 0;
-  intSelectedMenuEntry: Integer = 0;
-  intLastTick: UInt32 = 0;
-  boolBlinkState: Boolean = True;
-  intMenuSelectEndX: array[0..1] of Integer = (24, 8);
-  RandomTextures: array[0..99] of TPageTextureID;
-  CanvasDimension: TPageCoordinate2D;
-  Coord: TPageCoordinate2D;
-  event: TSDL_Event;
-  boolDown: Boolean = False;
-  boolEnter: Boolean = False;
-  intTilemaps, intX, intY: Integer;
-  tr: TPageTileRecord;
-  Performance: array[0..3] of array [0..3] of UInt64;
-  intLastPerformanceCount, intPerfDiff, intPerfFreq: UInt64;
-  intCycles: UInt64 = 0;
-  intDiffSum: UInt64 = 0;
-begin
-  // Initialize Subsystems for performance testing
-
-  // Create and initialize tilemaps
-  // Initialize Render Engine
-
-  Performance[0][0] := High(UInt64);
-  Performance[0][1] := Low(UInt64);
-  Performance[1][0] := High(UInt64);
-  Performance[1][1] := Low(UInt64);
-
-  intPerfFreq := SDL_GetPerformanceFrequency;
-
-  Randomize;
-
-  FRenderEngine.TileHeight := 8;
-  FRenderEngine.TileWidth := 8;
-  FBitmapFontManager.FontHeight := 8;
-  FRenderEngine.TilemapCount := PAGE_MAX_TILEMAPS;
-
-  CanvasDimension := FMemoryWrapper.RenderEngineInfo^.RenderingDimension;
-  CanvasDimension.X *= 2;
-  CanvasDimension.Y *= 2;
-  FMemoryWrapper.RenderEngineInfo^.CanvasDimension := CanvasDimension;
-
-  FRenderEngine.BuildTilemaps;
-  FRenderEngine.BuildSpriteStreams;
-
-  if not FBitmapFontManager.isFontLoaded then
-    FBitmapFontManager.LoadIntegratedFont;
-
-
-  for intX := 0 to High(RandomTextures) do
-    RandomTextures[intX] := FBitmapFontManager.TextureID(Char(
-      Random(75)+48));
-
-  WriteText(0, 0, 0, 'Pixelanstalt Game Engine');
-  WriteText(0, 0, 1, 'Performanace Test');
-  WriteText(0, 43, 0, 'FPS:');
-
-  while not (FMemoryWrapper.ExitGameLoop) do
-  begin
-    ProcessDispatchedEvents;
-    WriteText(0, 48, 0, Format('%.4d', [FRenderEngine.FPS]));
-
-    while (SDL_PollEvent(@event) <> 0) do
-    begin
-      case event.type_ of
-        SDL_KEYDOWN:
-          begin
-            case event.key.keysym.sym of
-              SDLK_RETURN: boolEnter := True;
-              SDLK_DOWN: boolDown := True;
-            end;
-          end;
-      end;
-    end;
-
-    case intState of
-      0:  begin
-            if SDL_GetTicks - intLastTick >= 500 then
-            begin
-              boolBlinkState := not boolBlinkState;
-              intLastTick := SDL_GetTicks;
-            end;
-
-            if boolBlinkState then
-            begin
-              WriteText(1, 1, intSelectedMenuEntry+4, '[');
-              WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
-                intSelectedMenuEntry+4, ']');
-            end
-            else
-            begin
-              WriteText(1, 1, intSelectedMenuEntry+4, ' ');
-              WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
-                intSelectedMenuEntry+4, ' ');
-            end;
-
-            if boolDown then
-            begin
-              if boolBlinkState then
-              begin
-                WriteText(1, 1, intSelectedMenuEntry+4, ' ');
-                WriteText(1, intMenuSelectEndX[intSelectedMenuEntry],
-                  intSelectedMenuEntry+4, ' ');
-              end;
-              intSelectedMenuEntry := (intSelectedMenuEntry + 1) mod 2;
-              boolDown := False;
-            end;
-
-            if boolEnter then
-            begin
-              case intSelectedMenuEntry of
-                0: begin
-                     intState := 1; // Rendering Test
-                     FRenderEngine.ClearAllTilemaps;
-                     intLastTick := SDL_GetTicks;
-                     intLastPerformanceCount := 0;
-                   end;
-                1: FMemoryWrapper.ExitGameLoop := True;
-              end;
-              boolEnter := False;
-            end;
-
-            WriteText(1, 3, 4, 'Start rendering test');
-            WriteText(1, 3, 5, 'Exit');
-          end;
-      1: begin
-           // Begin rendering test; increase substate each 10 seconds
-           if SDL_GetTicks - intLastTick >= 10000 then
-           begin
-             Performance[intSubState][2] :=
-               Round(intDiffSum/intCycles);
-
-             gEventQueue.CastEventString(etNotification, psMain, psDebug,
-               esInfo, PChar(Format('Rendering test subsequence %d ended. ' +
-                 'Cycles: %d, Min: %.3f ms (%.2f fps), Max: %.3f ms ' +
-                 '(%.2f fps), Avg: %.3f ms (%.2f fps)', [intSubState, intCycles,
-               Performance[intSubState][0]/(intPerfFreq/1000),
-               1000/(Performance[intSubState][0]/(intPerfFreq/1000)),
-               Performance[intSubState][1]/(intPerfFreq/1000),
-               1000/(Performance[intSubState][1]/(intPerfFreq/1000)),
-               Performance[intSubState][2]/(intPerfFreq/1000),
-               1000/(Performance[intSubState][2]/(intPerfFreq/1000))])));
-
-             Inc(intSubState);
-             if intSubState = 2 then
-             begin
-               Coord.X := 0;
-               Coord.Y := 0;
-               for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                 FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
-               FRenderEngine.SetRenderingModePerTile;
-             end;
-
-             intLastPerformanceCount := 0;
-             intDiffSum := 0;
-             intCycles := 0;
-
-             intLastTick := SDL_GetTicks;
-           end;
-
-           // Measure performance
-           if intLastPerformanceCount = 0 then
-             intLastPerformanceCount := SDL_GetPerformanceCounter
-           else
-           begin
-             intPerfDiff := SDL_GetPerformanceCounter - intLastPerformanceCount;
-             if Performance[intSubState][0] > intPerfDiff then
-               Performance[intSubState][0] := intPerfDiff;
-             if Performance[intSubState][1] < intPerfDiff then
-               Performance[intSubState][1] := intPerfDiff;
-
-             intDiffSum := intDiffSum + intPerfDiff;
-             intCycles := intCycles + 1;
-
-             intLastPerformanceCount := SDL_GetPerformanceCounter;
-           end;
-
-           case intSubState of
-             0: begin
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
-                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                      Width-1 do
-                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                        Height-1 do
-                      begin
-                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
-                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
-                          tr;
-                      end;
-                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
-                  end;
-                end;
-             1: begin
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
-                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                      Width-1 do
-                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                        Height-1 do
-                      begin
-                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
-                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
-                          tr;
-                      end;
-                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
-                  end;
-
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    Coord := FRenderEngine.TilemapOffsets[intTilemaps];
-                    if Coord.X > 5 then
-                      Coord.X := Coord.X+5*(Random(2)-1)
-                    else
-                      Inc(Coord.X);
-
-                    if Coord.Y > 5 then
-                      Coord.Y := Coord.Y+5*(Random(2)-1)
-                    else
-                      Inc(Coord.Y);
-
-                    FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
-                  end;
-                end;
-             2: begin
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
-                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                      Width-1 do
-                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                        Height-1 do
-                      begin
-                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
-                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
-                          tr;
-                      end;
-                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
-                  end;
-                end;
-             3: begin
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    FRenderEngine.Tilemaps[intTilemaps].BeginUpdate;
-                    for intX := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                      Width-1 do
-                      for intY := 0 to FRenderEngine.Tilemaps[intTilemaps].
-                        Height-1 do
-                      begin
-                        tr.TextureID := RandomTextures[(intLastPerformanceCount+(intX+intY)+(intX*intY)) mod 100];
-                        FRenderEngine.Tilemaps[intTilemaps].Map[intX, intY] :=
-                          tr;
-                      end;
-                    FRenderEngine.Tilemaps[intTilemaps].EndUpdate;
-                  end;
-
-                  for intTilemaps := 0 to FRenderEngine.TilemapCount-1 do
-                  begin
-                    Coord := FRenderEngine.TilemapOffsets[intTilemaps];
-                    if Coord.X > 5 then
-                      Coord.X := Coord.X+5*(Random(2)-1)
-                    else
-                      Inc(Coord.X);
-
-                    if Coord.Y > 5 then
-                      Coord.Y := Coord.Y+5*(Random(2)-1)
-                    else
-                      Inc(Coord.Y);
-
-                    FRenderEngine.TilemapOffsets[intTilemaps] := Coord;
-                  end;
-                end;
-           end;
-         end;
-    end;
-
-    FRenderEngine.DoRender;
-
-    gEventQueue.DoDispatchEvents;
-  end;
-end;
+  {$include page_performancetest.inc}
 
 procedure TPixelanstaltGameEngine.WriteText(TilemapNumber, X, Y: Integer;
   Text: String);
@@ -452,6 +170,7 @@ begin
   InitCriticalSection(FEventDispatchCriticalSection);
   FMemoryWrapper := TPageMemoryWrapper.Create;
   FMemoryWrapper.OnAfterVRAMInitialized := @MemoryWrapperAfterVRAMInitialized;
+  FMemoryWrapper.OnAfterWRAMInitialized := @MemoryWrapperAfterWRAMInitialized;
 end;
 
 destructor TPixelanstaltGameEngine.Destroy;
@@ -646,6 +365,8 @@ var
   delta: Double;
   intState: Integer = 0;
   intTick, intStateChange: UInt64;
+  SndEvent: TPAGE_Event;
+  SndRes: TPageSoundResource;
 begin
   p := FTextureManager.AddTextureFromInlineResource(@ppng, SizeOf(ppng),
     rtImagePNG);
@@ -692,6 +413,22 @@ begin
   RectPAGE.h := FTextureManager.GetTextureDimensions(page).y;
   RectPAGE.w := FTextureManager.GetTextureDimensions(page).x;
 
+  SndRes.ResourceType := rtInline;
+  SndRes.Memory := @loadwav;
+  SndRes.Size := Length(loadwav);
+  //SndRes.ResourceType := rtFile;
+  //SndRes.Filename := PChar('/home/tiberius/temp/pixelanstalt_4.wav');
+
+  SndEvent.EventType := etRequest;
+  SndEvent.EventMessage := emPlaySound;
+  SndEvent.EventSenderSubsystem := psMain;
+  SndEvent.EventReceiverSubsystem := psAudio;
+  SndEvent.SoundResource := SndRes;
+
+  gEventQueue.CastEvent(SndEvent);
+
+  //FSoundManager.PlaySound(SndRes);
+  //SDL_Delay(4000);
 
   { TODO: Make global }
   perfCountFreq := SDL_GetPerformanceFrequency;
@@ -709,6 +446,8 @@ begin
     perfCountCurrent := SDL_GetPerformanceCounter;
     delta := (perfCountCurrent - perfCountLast)/(perfCountFreq/10);
     SDL_RenderClear(FMemoryWrapper.SDLRenderer);
+
+    FSoundManager.Update;
 
     case intState of
       0: begin
@@ -745,6 +484,7 @@ begin
            begin
              alpha := 0;
              intState := 1;
+             //FSoundManager.PlaySound(SndRes);
 
              SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[p], 255);
              SDL_SetTextureAlphaMod(FTextureManager.TexturePointers[a], 255);
@@ -763,6 +503,8 @@ begin
            end;
          end;
       1: begin
+
+
 
            { TODO: Debug only - strip! }
            if intStateChange = 0 then

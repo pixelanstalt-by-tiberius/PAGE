@@ -23,7 +23,7 @@ resource_creator:
 
 resources: resource_creator
 	# compile resource-pas for the splashscreen
-	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -fres/page.png -ores/splash_res.pas
+	bin/debug/tools/irc -fres/fez.png -fres/p.png -fres/a.png -fres/g.png -fres/e.png -fres/page.png -fres/load.wav -ores/splash_res.pas
 	# compile resource-pas for manaspace bitmap font
 	bin/debug/tools/irc -fres/fonts/manaspace16.png -bres/fonts/manaspace16.fnt -ores/fonts/font_manaspace16.pas
 	bin/debug/tools/irc -fres/fonts/manaspace8.png -bres/fonts/manaspace8.fnt -ores/fonts/font_manaspace8.pas

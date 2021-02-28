@@ -5,10 +5,10 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)/"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Files Count="16">
+    <Files Count="18">
       <Item1>
         <Filename Value="page_bitmapfontmanager.pas"/>
         <UnitName Value="page_BitmapFontManager"/>
@@ -73,6 +73,13 @@
         <Filename Value="page_constants.pas"/>
         <UnitName Value="page_constants"/>
       </Item16>
+      <Item17>
+        <Filename Value="page_soundmanager.pas"/>
+        <UnitName Value="page_soundmanager"/>
+      </Item17>
+      <Item18>
+        <Filename Value="page_performancetest.inc"/>
+      </Item18>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

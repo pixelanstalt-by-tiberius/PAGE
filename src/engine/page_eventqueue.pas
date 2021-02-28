@@ -12,8 +12,10 @@ const
 
 type
   TPAGE_EventQueueListenerDefinition = record
-    ListenerMethod: TPAGE_EventQueueListener;
     ListenerDirection: TPAGE_SubSystems;
+    case MethodType: Integer of
+      0: (ListenerProcedure: TPAGE_EventQueueListenerProcedure);
+      1: (ListenerMethod: TPAGE_EventQueueListenerMethod);
   end;
 
   { TODO: Queue events in WRAM if possible }
@@ -22,7 +24,7 @@ type
 
   TPAGE_EventQueue = class
   protected
-    FEvents: array[0..MAX_EVENTS] of TPAGE_Event;
+    FEvents: array[0..MAX_EVENTS-1] of TPAGE_Event;
     FNumEvents: Integer;
     FListeners: array of TPAGE_EventQueueListenerDefinition;
 
@@ -39,10 +41,40 @@ type
       aVariableName: PChar; aVariableType: TPageDebugVariableType; aAddress:
       Pointer; aSize: Integer);
 
-    procedure AddEventListener(aEventListener: TPAGE_EventQueueListener;
-      ListenToSubSystems: TPAGE_SubSystems);
+    procedure AddEventListener(aEventListener: TPAGE_EventQueueListenerProcedure;
+      ListenToSubSystems: TPAGE_SubSystems); overload;
+    procedure AddEventListener(aEventListener: TPAGE_EventQueueListenerMethod;
+      ListenToSubSystems: TPAGE_SubSystems); overload;
+
+
 
     procedure DoDispatchEvents;
+  end;
+
+  { TPageEventQueueListenerClass }
+
+  TPageEventQueueListenerClass = class
+  private
+    //function GetEvent(Index: Integer): TPAGE_Event;
+    //function GetEventCount: Integer;
+  protected
+    FEventDispatchCriticalSection: TRTLCriticalSection;
+    FDispatchedEvents: array[0..MAX_EVENTS-1] of TPAGE_Event;
+    FDispatchedEventsTail, FDispatchedEventsHead: Integer;
+    FEventCount: Integer;
+  public
+    //property Events[Index: Integer]: TPAGE_Event read GetEvent;
+    //property EventCount: Integer read GetEventCount;
+
+    constructor Create;
+    destructor Destroy; override;
+
+    function EventPending: Boolean;
+    function PickEvent: TPAGE_Event;
+
+    procedure EventQueueDispatch(aDispatchedEvent: TPAGE_Event);
+    procedure RegisterDispatchMethod(SubSystems: TPAGE_SubSystems);
+    //procedure Update;
   end;
 
 var
@@ -51,6 +83,122 @@ var
 
 
 implementation
+
+{ TPageEventQueueListenerClass }
+
+{ function TPageEventQueueListenerClass.GetEvent(Index: Integer): TPAGE_Event;
+begin
+  if (Index > EventCount-1) or (Index < 0) then
+    raise Exception.CreateFmt('Event index out of bounds (%d)', [Index]);
+
+  Result := FDispatchedEvents[(FEventHead+Index)
+    mod (High(FDispatchedEvents)+1];
+end; }
+
+{ function TPageEventQueueListenerClass.GetEventCount: Integer;
+begin
+  Result := FEventCount;
+end; }
+
+constructor TPageEventQueueListenerClass.Create;
+begin
+  FDispatchedEventsTail := -1;
+  FDispatchedEventsHead := 0;
+  InitCriticalSection(FEventDispatchCriticalSection);
+end;
+
+destructor TPageEventQueueListenerClass.Destroy;
+begin
+  DoneCriticalSection(FEventDispatchCriticalSection);
+  inherited Destroy;
+end;
+
+function TPageEventQueueListenerClass.EventPending: Boolean;
+begin
+  Result := not ((FDispatchedEventsTail = -1) or
+    (FDispatchedEventsTail = FDispatchedEventsHead));
+end;
+
+function TPageEventQueueListenerClass.PickEvent: TPAGE_Event;
+begin
+  Result := EMPTY_EVENT;
+  if EventPending then
+  begin
+    Move(FDispatchedEvents[FDispatchedEventsTail], Result, SizeOf(TPAGE_Event));
+    EnterCriticalSection(FEventDispatchCriticalSection);
+    FDispatchedEventsTail := (FDispatchedEventsTail+1)
+      mod (High(FDispatchedEvents)+1);
+    LeaveCriticalSection(FEventDispatchCriticalSection);
+  end;
+end;
+
+procedure TPageEventQueueListenerClass.EventQueueDispatch(
+  aDispatchedEvent: TPAGE_Event);
+begin
+  if (FDispatchedEventsHead+1) mod (High(FDispatchedEventsTail)+1) =
+    FDispatchedEventsTail then
+    raise Exception.Create('Event queue overflow');
+
+  EnterCriticalSection(FEventDispatchCriticalSection);
+  if FDispatchedEventsTail < 0 then
+    FDispatchedEventsTail := 0;
+
+  FDispatchedEvents[FDispatchedEventsHead] := aDispatchedEvent;
+
+  if (aDispatchedEvent.EventMessage = emString) then
+  begin
+    FDispatchedEvents[FDispatchedEventsHead].EventMessageString :=
+      StrNew(aDispatchedEvent.EventMessageString);
+  end;
+
+  if (aDispatchedEvent.EventMessage = emDebugInfo) then
+  begin
+    case aDispatchedEvent.DebugInfoType of
+      diString: FDispatchedEvents[FDispatchedEventsHead].DebugString :=
+        StrNew(aDispatchedEvent.DebugString);
+      diVariable: FDispatchedEvents[FDispatchedEventsHead].DebugVariable.Name :=
+        StrNew(aDispatchedEvent.DebugVariable.Name);
+    end;
+  end;
+
+  FDispatchedEventsHead :=
+    (FDispatchedEventsHead + 1) mod (High(FDispatchedEvents)+1);
+  LeaveCriticalSection(FEventDispatchCriticalSection);
+end;
+
+procedure TPageEventQueueListenerClass.RegisterDispatchMethod(
+  SubSystems: TPAGE_SubSystems);
+begin
+  gEventQueue.AddEventListener(@EventQueueDispatch, SubSystems);
+end;
+
+{ procedure TPageEventQueueListenerClass.Update;
+var
+  intLoop, EventHead, EventTail: Integer;
+begin
+  // Exit update if no event was added
+  if (FDispatchedEventsTail = -1) or
+    (FDispatchedEventsTail = FDispatchedEventsHead) then
+    Exit;
+
+  EnterCriticalSection(FEventDispatchCriticalSection);
+  FCurrentEventHead := FDispatchedEventsHead;
+  FCurrentEventTail := FDispatchedEventsTail;
+  LeaveCriticalSection(FEventDispatchCriticalSection);
+
+  // Loop dispatched events
+  if EventHead > EventTail then
+    EventCount := EventHead-EventTail
+  else
+    EventCount := High(FDispatchedEvents)-EventHead+EventTail;
+
+
+  { TODO: Dispose strings }
+  EnterCriticalSection(FEventDispatchCriticalSection);
+  FDispatchedEventsTail := EventHead;
+  EventCount := 0;
+  LeaveCriticalSection(FEventDispatchCriticalSection);
+end; }
 
 
 { TPAGE_EventQueue }
@@ -135,14 +283,30 @@ end;
 
 { THIS METHOD IS NOT THREAD-SAFE! }
 procedure TPAGE_EventQueue.AddEventListener(
-  aEventListener: TPAGE_EventQueueListener; ListenToSubSystems: TPAGE_SubSystems
-  );
+  aEventListener: TPAGE_EventQueueListenerProcedure;
+  ListenToSubSystems: TPAGE_SubSystems);
 begin
   { TODO: Maybe make thread safe ?? }
   SetLength(FListeners, Length(FListeners)+1);
 
   with FListeners[High(FListeners)] do
   begin
+    MethodType := 0;
+    ListenerProcedure := aEventListener;
+    ListenerDirection := ListenToSubSystems;
+  end;
+end;
+
+procedure TPAGE_EventQueue.AddEventListener(
+  aEventListener: TPAGE_EventQueueListenerMethod;
+  ListenToSubSystems: TPAGE_SubSystems);
+begin
+  { TODO: Maybe make thread safe ?? }
+  SetLength(FListeners, Length(FListeners)+1);
+
+  with FListeners[High(FListeners)] do
+  begin
+    MethodType := 1;
     ListenerMethod := aEventListener;
     ListenerDirection := ListenToSubSystems;
   end;
@@ -162,7 +326,10 @@ begin
           (FEvents[intEventLoop].EventReceiverSubsystem in
            FListeners[intListenersLoop].ListenerDirection) then
         begin
-          FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
+          case FListeners[intListenersLoop].MethodType of
+            0: FListeners[intListenersLoop].ListenerProcedure(FEvents[intEventLoop]);
+            1: FListeners[intListenersLoop].ListenerMethod(FEvents[intEventLoop]);
+          end;
         end;
       end;
     end;

@@ -15,14 +15,21 @@ type
   private
     function GetMethodPointer(Index: Integer): Pointer;
     function GetMethodPointerArrayLength: Integer;
-    function GetPAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
+    function GetPAGEAddEventQueueListenerMethod:
+      TPAGE_AddEventQueueListenerMethod;
+    function GetPAGEAddEventQueueListenerProcedure:
+      TPAGE_AddEventQueueListenerProcedure;
     function GetPAGEBindToApp: TPAGE_BindToApp;
     function GetPAGECastEvent: TPAGE_CastEvent;
     function GetPAGEEnterGameLoop: TPAGE_EnterGameLoop;
     function GetPAGEFinalize: TPAGE_Finalize;
     function GetPAGEGetRendererInfos: TPAGE_GetRendererInfos;
     function GetPAGEInitialize: TPAGE_Initialize;
-    procedure SetPAGEAddEventQueueListener(AValue: TPAGE_AddEventQueueListener);
+
+    procedure SetPAGEAddEventQueueListenerMethod(
+      AValue: TPAGE_AddEventQueueListenerMethod);
+    procedure SetPAGEAddEventQueueListenerProcedure(
+      AValue: TPAGE_AddEventQueueListenerProcedure);
     procedure SetPAGEBindToApp(AValue: TPAGE_BindToApp);
     procedure SetPAGECastEvent(AValue: TPAGE_CastEvent);
     procedure SetPAGEEnterGameLoop(AValue: TPAGE_EnterGameLoop);
@@ -42,8 +49,10 @@ type
       GetPAGEGetRendererInfos write SetPAGEGetRendererInfos;
     property PAGEEnterGameLoop: TPAGE_EnterGameLoop read GetPAGEEnterGameLoop
       write SetPAGEEnterGameLoop;
-    property PAGEAddEventQueueListener: TPAGE_AddEventQueueListener read
-      GetPAGEAddEventQueueListener write SetPAGEAddEventQueueListener;
+    property PAGEAddEventQueueListenerProcedure: TPAGE_AddEventQueueListenerProcedure read
+      GetPAGEAddEventQueueListenerProcedure write SetPAGEAddEventQueueListenerProcedure;
+    property PAGEAddEventQueueListenerMethod: TPAGE_AddEventQueueListenerMethod read
+      GetPAGEAddEventQueueListenerMethod write SetPAGEAddEventQueueListenerMethod;
     property PAGECastEvent: TPAGE_CastEvent read GetPAGECastEvent write
       SetPAGECastEvent;
 
@@ -74,9 +83,14 @@ begin
   Result := Length(FMethodPointers);
 end;
 
-function TPAGE_APIHelper.GetPAGEAddEventQueueListener: TPAGE_AddEventQueueListener;
+function TPAGE_APIHelper.GetPAGEAddEventQueueListenerMethod: TPAGE_AddEventQueueListenerMethod;
 begin
-  Result := TPAGE_AddEventQueueListener(FMethodPointers[6]);
+  Result := TPAGE_AddEventQueueListenerMethod(FMethodPointers[7]);
+end;
+
+function TPAGE_APIHelper.GetPAGEAddEventQueueListenerProcedure: TPAGE_AddEventQueueListenerProcedure;
+begin
+  Result := TPAGE_AddEventQueueListenerProcedure(FMethodPointers[6]);
 end;
 
 function TPAGE_APIHelper.GetPAGEBindToApp: TPAGE_BindToApp;
@@ -86,7 +100,7 @@ end;
 
 function TPAGE_APIHelper.GetPAGECastEvent: TPAGE_CastEvent;
 begin
-  Result := TPAGE_CastEvent(FMethodPointers[7]);
+  Result := TPAGE_CastEvent(FMethodPointers[8]);
 end;
 
 function TPAGE_APIHelper.GetPAGEEnterGameLoop: TPAGE_EnterGameLoop;
@@ -109,8 +123,15 @@ begin
   Result := TPAGE_Initialize(FMethodPointers[0]);
 end;
 
-procedure TPAGE_APIHelper.SetPAGEAddEventQueueListener(
-  AValue: TPAGE_AddEventQueueListener);
+
+procedure TPAGE_APIHelper.SetPAGEAddEventQueueListenerMethod(
+  AValue: TPAGE_AddEventQueueListenerMethod);
+begin
+  FMethodPointers[7] := AValue;
+end;
+
+procedure TPAGE_APIHelper.SetPAGEAddEventQueueListenerProcedure(
+  AValue: TPAGE_AddEventQueueListenerProcedure);
 begin
   FMethodPointers[6] := AValue;
 end;
@@ -122,7 +143,7 @@ end;
 
 procedure TPAGE_APIHelper.SetPAGECastEvent(AValue: TPAGE_CastEvent);
 begin
-  FMethodPointers[7] := AValue;
+  FMethodPointers[8] := AValue;
 end;
 
 procedure TPAGE_APIHelper.SetPAGEEnterGameLoop(AValue: TPAGE_EnterGameLoop);

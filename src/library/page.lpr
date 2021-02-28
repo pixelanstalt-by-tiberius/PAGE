@@ -7,7 +7,8 @@ uses
   Classes, SDL2, PageAPI, SDL2_Image, PAGE_EventQueue, SysUtils, page_helpers,
   page_encapsulate, page_texturemanager, page_memorymanager,
   page_improvedmemorymanager, page_tilemanager, page_renderengine,
-  page_memorywrapper, page_spritemanager, page_dummymemorymanager, page_BitmapFontManager;
+  page_memorywrapper, page_spritemanager, page_dummymemorymanager,
+  page_BitmapFontManager;
 
 { var
   gPAGE: TPixelanstaltGameEngine;}
@@ -44,8 +45,17 @@ begin
   Result := gPAGE.EnterGameLoop(overrideDelta);
 end;
 
-function PAGE_Do_AddEventQueueListener(aEventListener: TPAGE_EventQueueListener;
-  ListenToSubSystems: TPAGE_SubSystems): Boolean;
+function PAGE_Do_AddEventQueueListenerProcedure(aEventListener:
+    TPAGE_EventQueueListenerProcedure;
+  ListenToSubSystems: TPAGE_SubSystems): Boolean; overload;
+begin
+  gEventQueue.AddEventListener(aEventListener, ListenToSubSystems);
+  Result := True;
+  { TODO: Handle result }
+end;
+
+function PAGE_Do_AddEventQueueListenerMethod(aEventListener: TPAGE_EventQueueListenerMethod;
+  ListenToSubSystems: TPAGE_SubSystems): Boolean; overload;
 begin
   gEventQueue.AddEventListener(aEventListener, ListenToSubSystems);
   Result := True;
@@ -60,7 +70,8 @@ end;
 exports
   PAGE_Do_Initialize, PAGE_Do_Finalize, PAGE_Do_BindToApp,
   PAGE_Do_GetRendererInfos, PAGE_Do_EnterGameLoop, PAGE_Do_Splashscreen,
-  PAGE_Do_AddEventQueueListener, PAGE_Do_CastEvent;
+  PAGE_Do_AddEventQueueListenerProcedure,
+  PAGE_Do_AddEventQueueListenerMethod, PAGE_Do_CastEvent;
 
 
 end.

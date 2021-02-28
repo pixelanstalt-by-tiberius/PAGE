@@ -213,6 +213,9 @@ begin
   SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
   for intTilemapLoop := 0 to TilemapCount-1 do
   begin
+    if not FTilemaps[intTilemapLoop]^.Enabled then
+      Continue;
+
     // Calculate tile index boundaries based on the current viewport/offsets
     LowerBoundaryX := FTilemapOffsets[intTilemapLoop].X div TileWidth;
     UpperBoundaryX := FTilemaps[intTilemapLoop]^.Width-LowerBoundaryX-1;
@@ -250,6 +253,9 @@ begin
   SDL_SetRenderDrawBlendMode(FMemoryWrapper.SDLRenderer, SDL_BLENDMODE_BLEND);
   for intTilemapLoop := 0 to TilemapCount-1 do
   begin
+    if not FTilemaps[intTilemapLoop]^.Enabled then
+      Continue;
+
     if not FTilemaps[intTilemapLoop]^.isValid then
     begin
       DoRenderTilemapToTexture(FTilemaps[intTilemapLoop],
@@ -480,6 +486,7 @@ begin
     FTilemaps[intLoop]^.SetMapSize(FMemoryWrapper.RenderEngineInfo^.
       CanvasDimension.X div TileWidth, FMemoryWrapper.RenderEngineInfo^.
       CanvasDimension.Y div TileHeight);
+    FTilemaps[intLoop]^.Enabled := True;
   end;
 
   InitializeRenderedBackgroundsTextures

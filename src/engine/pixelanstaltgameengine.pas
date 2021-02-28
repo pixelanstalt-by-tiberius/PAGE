@@ -12,7 +12,7 @@ uses
   page_encapsulate, PAGE_EventQueue, page_helpers, page_improvedmemorymanager, 
   page_memorymanager, page_memorywrapper, page_renderengine, 
   page_spritemanager, page_texturemanager, page_tilemanager, PAGEAPI, 
-  page_constants;
+  page_constants, page_soundmanager;
 
 implementation
 
